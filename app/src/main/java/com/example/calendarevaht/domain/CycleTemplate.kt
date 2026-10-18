@@ -4,9 +4,14 @@ import java.time.LocalDate
 
 data class CycleTemplate(
     val id: Long,
-    val rule: CycleRule,
+    val initialRule: CycleRule,
     val startDate: LocalDate,
-    val changeDate: LocalDate,
-    val newRule: CycleRule,
-    val baseColor: Long
+    val endDate: LocalDate?,
+    val isOneTime: Boolean,
+    val baseColor: Long,
+    val overrides: List<ShiftOverride> = emptyList(), // <-- НОВОЕ ПОЛЕ
+    val countBackward: Boolean = false,
+    val backwardLimitMonths: Int = 0,
+    val isMine: Boolean = false,
+    val customName: String = ""
 )

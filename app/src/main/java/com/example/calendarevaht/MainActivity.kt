@@ -12,10 +12,12 @@ import com.example.calendarevaht.data.ThemePreferences
 import com.example.calendarevaht.ui.MainScreen
 import com.example.calendarevaht.ui.theme.AppTheme
 import com.example.calendarevaht.ui.theme.CalendareVahtTheme
+import com.example.calendarevaht.widget.ShiftWidgetProvider
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ShiftWidgetProvider.refreshAll(applicationContext)
         val prefs = ThemePreferences(applicationContext)
         setContent {
             val theme by prefs.theme.collectAsStateWithLifecycle(initialValue = AppTheme.LIGHT)
@@ -25,5 +27,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ShiftWidgetProvider.refreshAll(applicationContext)
     }
 }

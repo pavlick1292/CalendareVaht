@@ -1,0 +1,84 @@
+package com.example.calendarevaht.ui.calendar
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.calendarevaht.data.HolidayRepository
+import com.example.calendarevaht.data.SettingsPreferences
+import com.example.calendarevaht.data.ShiftPreferences
+import com.example.calendarevaht.domain.CycleCalculator
+import com.example.calendarevaht.domain.CycleTemplate
+import com.example.calendarevaht.domain.ShiftEntry
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.Year
+
+data class CalendarUiState(
+    val year: Int = Year.now().value,
+    val templates: List<CycleTemplate> = emptyList(),
+    val days: Map<LocalDate, List<ShiftEntry>> = emptyMap(),
+    val holidays: Map<LocalDate, String> = emptyMap(),
+    val shiftHours: Int = 11
+) {
+    val mine: CycleTemplate? get() = templates.firstOrNull { it.isMine }
+    val other: CycleTemplate? get() = templates.firstOrNull { !it.isMine }
+}
+
+class CalendarViewModel(app: Application) : AndroidViewModel(app) {
+    private val shiftPrefs = ShiftPreferences(app)
+    private val settingsPrefs = SettingsPreferences(app)
+    private val holidayRepo = HolidayRepository(app)
+    private val _state = MutableStateFlow(CalendarUiState())
+    val state: StateFlow<CalendarUiState> = _state.asStateFlow()
+
+    init {
+        reload(_state.value.year)
+    }
+
+    fun changeYear(delta: Int) {
+        reload(_state.value.year + delta)
+    }
+
+    fun reload(year: Int = _state.value.year) {
+        viewModelScope.launch {
+            val templates = shiftPrefs.templates.first()
+            val settings = settingsPrefs.settings.first()
+
+            // Рамки года для отображения
+            val from = LocalDate.of(year, 1, 1)
+            val to = LocalDate.of(year, 12, 31)
+
+            // Рамки для расчёта (с запасом назад и вперёд, чтобы "назад" отработал)
+            val queryFrom = from.minusMonths(13)
+            val queryTo = to.plusMonths(1)
+
+            val map = mutableMapOf<LocalDate, MutableList<ShiftEntry>>()
+            templates.forEach { t ->
+                CycleCalculator.expandCycleToDays(t, queryFrom, queryTo).forEach { e ->
+                    var d = e.start
+                    while (!d.isAfter(e.end)) {
+                        // Оставляем только дни, попадающие в выбранный год
+                        if (!d.isBefore(from) && !d.isAfter(to)) {
+                            map.getOrPut(d) { mutableListOf() }.add(e)
+                        }
+                        d = d.plusDays(1)
+                    }
+                }
+            }
+
+            val holidays = holidayRepo.load(year)
+
+            _state.value = CalendarUiState(
+                year = year,
+                templates = templates,
+                days = map.mapValues { it.value.toList() },
+                holidays = holidays,
+                shiftHours = settings.shiftHours
+            )
+        }
+    }
+}

@@ -1,0 +1,812 @@
+<html>
+<head>
+<title>ShiftsScreen.kt</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #bcbec4;}
+.s1 { color: #bcbec4;}
+.s2 { color: #cf8e6d;}
+.s3 { color: #2aacb8;}
+.s4 { color: #6aab73;}
+.s5 { color: #7a7e85;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+ShiftsScreen.kt</font>
+</center></td></tr></table>
+<pre><span class="s0">@file:OptIn</span><span class="s1">(</span><span class="s0">androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">ExperimentalMaterial3Api::</span><span class="s2">class</span><span class="s1">)</span>
+
+<span class="s2">package </span><span class="s0">com</span><span class="s1">.</span><span class="s0">example</span><span class="s1">.</span><span class="s0">calendarevaht</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">shifts</span>
+
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">background</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">border</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">clickable</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">layout</span><span class="s1">.</span><span class="s0">Arrangement</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">layout</span><span class="s1">.</span><span class="s0">Box</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">layout</span><span class="s1">.</span><span class="s0">Column</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">layout</span><span class="s1">.</span><span class="s0">PaddingValues</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">layout</span><span class="s1">.</span><span class="s0">Row</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">layout</span><span class="s1">.</span><span class="s0">Spacer</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">layout</span><span class="s1">.</span><span class="s0">fillMaxSize</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">layout</span><span class="s1">.</span><span class="s0">fillMaxWidth</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">layout</span><span class="s1">.</span><span class="s0">height</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">layout</span><span class="s1">.</span><span class="s0">padding</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">layout</span><span class="s1">.</span><span class="s0">size</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">layout</span><span class="s1">.</span><span class="s0">width</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">lazy</span><span class="s1">.</span><span class="s0">LazyColumn</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">lazy</span><span class="s1">.</span><span class="s0">items</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">rememberScrollState</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">shape</span><span class="s1">.</span><span class="s0">CircleShape</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">text</span><span class="s1">.</span><span class="s0">KeyboardOptions</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">foundation</span><span class="s1">.</span><span class="s0">verticalScroll</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material</span><span class="s1">.</span><span class="s0">icons</span><span class="s1">.</span><span class="s0">Icons</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material</span><span class="s1">.</span><span class="s0">icons</span><span class="s1">.</span><span class="s0">filled</span><span class="s1">.</span><span class="s0">Add</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material</span><span class="s1">.</span><span class="s0">icons</span><span class="s1">.</span><span class="s0">filled</span><span class="s1">.</span><span class="s0">Check</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material</span><span class="s1">.</span><span class="s0">icons</span><span class="s1">.</span><span class="s0">filled</span><span class="s1">.</span><span class="s0">Close</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material</span><span class="s1">.</span><span class="s0">icons</span><span class="s1">.</span><span class="s0">filled</span><span class="s1">.</span><span class="s0">Settings</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">AlertDialog</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">Button</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">ButtonDefaults</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">Card</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">CardDefaults</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">Checkbox</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">DatePicker</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">DatePickerDialog</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">DropdownMenu</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">DropdownMenuItem</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">FilterChip</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">Icon</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">IconButton</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">MaterialTheme</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">OutlinedTextField</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">Scaffold</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">Text</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">TextButton</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">TopAppBar</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">material3</span><span class="s1">.</span><span class="s0">rememberDatePickerState</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">runtime</span><span class="s1">.</span><span class="s0">Composable</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">runtime</span><span class="s1">.</span><span class="s0">collectAsState</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">runtime</span><span class="s1">.</span><span class="s0">getValue</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">runtime</span><span class="s1">.</span><span class="s0">mutableStateOf</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">runtime</span><span class="s1">.</span><span class="s0">remember</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">runtime</span><span class="s1">.</span><span class="s0">setValue</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">Alignment</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">Modifier</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">draw</span><span class="s1">.</span><span class="s0">clip</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">graphics</span><span class="s1">.</span><span class="s0">Color</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">text</span><span class="s1">.</span><span class="s0">font</span><span class="s1">.</span><span class="s0">FontWeight</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">text</span><span class="s1">.</span><span class="s0">input</span><span class="s1">.</span><span class="s0">KeyboardType</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">unit</span><span class="s1">.</span><span class="s0">dp</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">ui</span><span class="s1">.</span><span class="s0">unit</span><span class="s1">.</span><span class="s0">sp</span>
+<span class="s0">import androidx</span><span class="s1">.</span><span class="s0">lifecycle</span><span class="s1">.</span><span class="s0">viewmodel</span><span class="s1">.</span><span class="s0">compose</span><span class="s1">.</span><span class="s0">viewModel</span>
+<span class="s0">import com</span><span class="s1">.</span><span class="s0">example</span><span class="s1">.</span><span class="s0">calendarevaht</span><span class="s1">.</span><span class="s0">domain</span><span class="s1">.</span><span class="s0">CycleCalculator</span>
+<span class="s0">import com</span><span class="s1">.</span><span class="s0">example</span><span class="s1">.</span><span class="s0">calendarevaht</span><span class="s1">.</span><span class="s0">domain</span><span class="s1">.</span><span class="s0">CycleRule</span>
+<span class="s0">import com</span><span class="s1">.</span><span class="s0">example</span><span class="s1">.</span><span class="s0">calendarevaht</span><span class="s1">.</span><span class="s0">domain</span><span class="s1">.</span><span class="s0">CycleTemplate</span>
+<span class="s0">import com</span><span class="s1">.</span><span class="s0">example</span><span class="s1">.</span><span class="s0">calendarevaht</span><span class="s1">.</span><span class="s0">domain</span><span class="s1">.</span><span class="s0">ShiftEntry</span>
+<span class="s0">import com</span><span class="s1">.</span><span class="s0">example</span><span class="s1">.</span><span class="s0">calendarevaht</span><span class="s1">.</span><span class="s0">domain</span><span class="s1">.</span><span class="s0">ShiftOverride</span>
+<span class="s0">import java</span><span class="s1">.</span><span class="s0">time</span><span class="s1">.</span><span class="s0">Instant</span>
+<span class="s0">import java</span><span class="s1">.</span><span class="s0">time</span><span class="s1">.</span><span class="s0">LocalDate</span>
+<span class="s0">import java</span><span class="s1">.</span><span class="s0">time</span><span class="s1">.</span><span class="s0">ZoneOffset</span>
+<span class="s0">import java</span><span class="s1">.</span><span class="s0">time</span><span class="s1">.</span><span class="s0">format</span><span class="s1">.</span><span class="s0">DateTimeFormatter</span>
+
+<span class="s0">private </span><span class="s2">val </span><span class="s0">PaletteColors </span><span class="s1">= </span><span class="s0">listOf</span><span class="s1">(</span>
+    <span class="s3">0xFF4CAF50</span><span class="s1">, </span><span class="s3">0xFF2196F3</span><span class="s1">, </span><span class="s3">0xFFF44336</span><span class="s1">, </span><span class="s3">0xFFFF9800</span><span class="s1">,</span>
+    <span class="s3">0xFF9C27B0</span><span class="s1">, </span><span class="s3">0xFF00BCD4</span><span class="s1">, </span><span class="s3">0xFFFFC107</span><span class="s1">, </span><span class="s3">0xFF795548</span>
+<span class="s1">)</span>
+
+<span class="s0">@Composable</span>
+<span class="s2">fun </span><span class="s0">ShiftsScreen</span><span class="s1">(</span>
+    <span class="s0">vm: ShiftsViewModel </span><span class="s1">= </span><span class="s0">viewModel</span><span class="s1">()</span>
+<span class="s1">) {</span>
+    <span class="s2">val </span><span class="s0">templates by vm</span><span class="s1">.</span><span class="s0">templates</span><span class="s1">.</span><span class="s0">collectAsState</span><span class="s1">()</span>
+    <span class="s2">val </span><span class="s0">forecastMonths by vm</span><span class="s1">.</span><span class="s0">forecastMonths</span><span class="s1">.</span><span class="s0">collectAsState</span><span class="s1">()</span>
+    <span class="s2">var </span><span class="s0">editing by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">&lt;</span><span class="s0">CycleTemplate?</span><span class="s1">&gt;(</span><span class="s2">null</span><span class="s1">) }</span>
+    <span class="s2">var </span><span class="s0">creating by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s2">false</span><span class="s1">) }</span>
+    <span class="s2">var </span><span class="s0">showForecastMenu by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s2">false</span><span class="s1">) }</span>
+
+    <span class="s0">Scaffold</span><span class="s1">(</span>
+        <span class="s0">topBar </span><span class="s1">= {</span>
+            <span class="s0">TopAppBar</span><span class="s1">(</span>
+                <span class="s0">title </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Вахты&quot;</span><span class="s1">) },</span>
+                <span class="s0">actions </span><span class="s1">= {</span>
+                    <span class="s0">Box </span><span class="s1">{</span>
+                        <span class="s0">IconButton</span><span class="s1">(</span><span class="s0">onClick </span><span class="s1">= { </span><span class="s0">showForecastMenu </span><span class="s1">= </span><span class="s2">true </span><span class="s1">}) {</span>
+                            <span class="s0">Icon</span><span class="s1">(</span><span class="s0">Icons</span><span class="s1">.</span><span class="s0">Default</span><span class="s1">.</span><span class="s0">Settings</span><span class="s1">, </span><span class="s0">contentDescription </span><span class="s1">= </span><span class="s4">&quot;Горизонт&quot;</span><span class="s1">)</span>
+                        <span class="s1">}</span>
+                        <span class="s0">DropdownMenu</span><span class="s1">(</span>
+                            <span class="s0">expanded </span><span class="s1">= </span><span class="s0">showForecastMenu</span><span class="s1">,</span>
+                            <span class="s0">onDismissRequest </span><span class="s1">= { </span><span class="s0">showForecastMenu </span><span class="s1">= </span><span class="s2">false </span><span class="s1">}</span>
+                        <span class="s1">) {</span>
+                            <span class="s0">listOf</span><span class="s1">(</span>
+                                <span class="s3">3 </span><span class="s0">to </span><span class="s4">&quot;3 месяца&quot;</span><span class="s1">,</span>
+                                <span class="s3">6 </span><span class="s0">to </span><span class="s4">&quot;6 месяцев&quot;</span><span class="s1">,</span>
+                                <span class="s3">12 </span><span class="s0">to </span><span class="s4">&quot;1 год&quot;</span><span class="s1">,</span>
+                                <span class="s3">24 </span><span class="s0">to </span><span class="s4">&quot;2 года&quot;</span><span class="s1">,</span>
+                                <span class="s3">36 </span><span class="s0">to </span><span class="s4">&quot;3 года&quot;</span>
+                            <span class="s1">).</span><span class="s0">forEach </span><span class="s1">{ (</span><span class="s0">months</span><span class="s1">, </span><span class="s0">label</span><span class="s1">) -&gt;</span>
+                                <span class="s0">DropdownMenuItem</span><span class="s1">(</span>
+                                    <span class="s0">text </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s2">if </span><span class="s1">(</span><span class="s0">forecastMonths </span><span class="s1">== </span><span class="s0">months</span><span class="s1">) </span><span class="s4">&quot;</span><span class="s2">$</span><span class="s0">label </span><span class="s4">(выбрано)&quot; </span><span class="s2">else </span><span class="s0">label</span><span class="s1">) },</span>
+                                    <span class="s0">onClick </span><span class="s1">= {</span>
+                                        <span class="s0">vm</span><span class="s1">.</span><span class="s0">setForecastMonths</span><span class="s1">(</span><span class="s0">months</span><span class="s1">)</span>
+                                        <span class="s0">showForecastMenu </span><span class="s1">= </span><span class="s2">false</span>
+                                    <span class="s1">}</span>
+                                <span class="s1">)</span>
+                            <span class="s1">}</span>
+                        <span class="s1">}</span>
+                    <span class="s1">}</span>
+                    <span class="s0">IconButton</span><span class="s1">(</span><span class="s0">onClick </span><span class="s1">= { </span><span class="s0">creating </span><span class="s1">= </span><span class="s2">true </span><span class="s1">}) {</span>
+                        <span class="s0">Icon</span><span class="s1">(</span><span class="s0">Icons</span><span class="s1">.</span><span class="s0">Default</span><span class="s1">.</span><span class="s0">Add</span><span class="s1">, </span><span class="s0">contentDescription </span><span class="s1">= </span><span class="s4">&quot;Добавить вахту&quot;</span><span class="s1">)</span>
+                    <span class="s1">}</span>
+                <span class="s1">}</span>
+            <span class="s1">)</span>
+        <span class="s1">}</span>
+    <span class="s1">) { </span><span class="s0">padding </span><span class="s1">-&gt;</span>
+        <span class="s0">Box</span><span class="s1">(</span>
+            <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span>
+                <span class="s1">.</span><span class="s0">fillMaxSize</span><span class="s1">()</span>
+                <span class="s1">.</span><span class="s0">padding</span><span class="s1">(</span><span class="s0">padding</span><span class="s1">)</span>
+        <span class="s1">) {</span>
+            <span class="s2">if </span><span class="s1">(</span><span class="s0">templates</span><span class="s1">.</span><span class="s0">isEmpty</span><span class="s1">()) {</span>
+                <span class="s0">Column</span><span class="s1">(</span>
+                    <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span>
+                        <span class="s1">.</span><span class="s0">fillMaxSize</span><span class="s1">()</span>
+                        <span class="s1">.</span><span class="s0">padding</span><span class="s1">(</span><span class="s3">24</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">),</span>
+                    <span class="s0">horizontalAlignment </span><span class="s1">= </span><span class="s0">Alignment</span><span class="s1">.</span><span class="s0">CenterHorizontally</span><span class="s1">,</span>
+                    <span class="s0">verticalArrangement </span><span class="s1">= </span><span class="s0">Arrangement</span><span class="s1">.</span><span class="s0">Center</span>
+                <span class="s1">) {</span>
+                    <span class="s0">Text</span><span class="s1">(</span>
+                        <span class="s0">text </span><span class="s1">= </span><span class="s4">&quot;Вахт пока нет&quot;</span><span class="s1">,</span>
+                        <span class="s0">fontSize </span><span class="s1">= </span><span class="s3">16</span><span class="s1">.</span><span class="s0">sp</span><span class="s1">,</span>
+                        <span class="s0">color </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">onSurfaceVariant</span>
+                    <span class="s1">)</span>
+                    <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">12</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+                    <span class="s0">Button</span><span class="s1">(</span><span class="s0">onClick </span><span class="s1">= { </span><span class="s0">creating </span><span class="s1">= </span><span class="s2">true </span><span class="s1">}) {</span>
+                        <span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Добавить первую вахту&quot;</span><span class="s1">)</span>
+                    <span class="s1">}</span>
+                <span class="s1">}</span>
+            <span class="s1">} </span><span class="s2">else </span><span class="s1">{</span>
+                <span class="s0">LazyColumn</span><span class="s1">(</span>
+                    <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">fillMaxSize</span><span class="s1">(),</span>
+                    <span class="s0">contentPadding </span><span class="s1">= </span><span class="s0">PaddingValues</span><span class="s1">(</span><span class="s3">12</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">),</span>
+                    <span class="s0">verticalArrangement </span><span class="s1">= </span><span class="s0">Arrangement</span><span class="s1">.</span><span class="s0">spacedBy</span><span class="s1">(</span><span class="s3">8</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">)</span>
+                <span class="s1">) {</span>
+                    <span class="s0">items</span><span class="s1">(</span><span class="s0">templates</span><span class="s1">, </span><span class="s0">key </span><span class="s1">= { </span><span class="s0">it</span><span class="s1">.</span><span class="s0">id </span><span class="s1">}) { </span><span class="s0">t </span><span class="s1">-&gt;</span>
+                        <span class="s0">TemplateRow</span><span class="s1">(</span>
+                            <span class="s0">template </span><span class="s1">= </span><span class="s0">t</span><span class="s1">,</span>
+                            <span class="s0">onClick </span><span class="s1">= { </span><span class="s0">editing </span><span class="s1">= </span><span class="s0">t </span><span class="s1">}</span>
+                        <span class="s1">)</span>
+                    <span class="s1">}</span>
+                <span class="s1">}</span>
+            <span class="s1">}</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+
+    <span class="s2">if </span><span class="s1">(</span><span class="s0">creating</span><span class="s1">) {</span>
+        <span class="s0">EditShiftDialog</span><span class="s1">(</span>
+            <span class="s0">initial </span><span class="s1">= </span><span class="s2">null</span><span class="s1">,</span>
+            <span class="s0">onDismiss </span><span class="s1">= { </span><span class="s0">creating </span><span class="s1">= </span><span class="s2">false </span><span class="s1">},</span>
+            <span class="s0">onSave </span><span class="s1">= { </span><span class="s0">t </span><span class="s1">-&gt;</span>
+                <span class="s0">vm</span><span class="s1">.</span><span class="s0">add</span><span class="s1">(</span><span class="s0">t</span><span class="s1">)</span>
+                <span class="s0">creating </span><span class="s1">= </span><span class="s2">false</span>
+            <span class="s1">},</span>
+            <span class="s0">onDelete </span><span class="s1">= </span><span class="s2">null</span><span class="s1">,</span>
+            <span class="s0">onAddSpecificShiftChange </span><span class="s1">= </span><span class="s2">null</span>
+        <span class="s1">)</span>
+    <span class="s1">}</span>
+
+    <span class="s0">editing?</span><span class="s1">.</span><span class="s0">let </span><span class="s1">{ </span><span class="s0">template </span><span class="s1">-&gt;</span>
+        <span class="s0">EditShiftDialog</span><span class="s1">(</span>
+            <span class="s0">initial </span><span class="s1">= </span><span class="s0">template</span><span class="s1">,</span>
+            <span class="s0">onDismiss </span><span class="s1">= { </span><span class="s0">editing </span><span class="s1">= </span><span class="s2">null </span><span class="s1">},</span>
+            <span class="s0">onSave </span><span class="s1">= { </span><span class="s0">t </span><span class="s1">-&gt;</span>
+                <span class="s0">vm</span><span class="s1">.</span><span class="s0">update</span><span class="s1">(</span><span class="s0">t</span><span class="s1">)</span>
+                <span class="s0">editing </span><span class="s1">= </span><span class="s2">null</span>
+            <span class="s1">},</span>
+            <span class="s0">onDelete </span><span class="s1">= {</span>
+                <span class="s0">vm</span><span class="s1">.</span><span class="s0">remove</span><span class="s1">(</span><span class="s0">template</span><span class="s1">.</span><span class="s0">id</span><span class="s1">)</span>
+                <span class="s0">editing </span><span class="s1">= </span><span class="s2">null</span>
+            <span class="s1">},</span>
+            <span class="s0">onAddSpecificShiftChange </span><span class="s1">= { </span><span class="s0">originalStart</span><span class="s1">, </span><span class="s0">newStart</span><span class="s1">, </span><span class="s0">work</span><span class="s1">, </span><span class="s0">rest</span><span class="s1">, </span><span class="s0">shiftSubsequent </span><span class="s1">-&gt;</span>
+                <span class="s2">val </span><span class="s0">base </span><span class="s1">= </span><span class="s0">vm</span><span class="s1">.</span><span class="s0">templates</span><span class="s1">.</span><span class="s0">value</span><span class="s1">.</span><span class="s0">firstOrNull </span><span class="s1">{ </span><span class="s0">it</span><span class="s1">.</span><span class="s0">id </span><span class="s1">== </span><span class="s0">template</span><span class="s1">.</span><span class="s0">id </span><span class="s1">} </span><span class="s0">?: template</span>
+                <span class="s2">val </span><span class="s0">filteredOverrides </span><span class="s1">= </span><span class="s0">base</span><span class="s1">.</span><span class="s0">overrides</span><span class="s1">.</span><span class="s0">filterNot </span><span class="s1">{ </span><span class="s0">it</span><span class="s1">.</span><span class="s0">originalStart </span><span class="s1">== </span><span class="s0">originalStart </span><span class="s1">}</span>
+
+                <span class="s2">val </span><span class="s0">newOverride </span><span class="s1">= </span><span class="s0">ShiftOverride</span><span class="s1">(</span>
+                    <span class="s0">originalStart </span><span class="s1">= </span><span class="s0">originalStart</span><span class="s1">,</span>
+                    <span class="s0">newStart </span><span class="s1">= </span><span class="s0">newStart</span><span class="s1">,</span>
+                    <span class="s0">workDays </span><span class="s1">= </span><span class="s0">work</span><span class="s1">,</span>
+                    <span class="s0">restDays </span><span class="s1">= </span><span class="s0">rest</span><span class="s1">,</span>
+                    <span class="s0">shiftSubsequent </span><span class="s1">= </span><span class="s0">shiftSubsequent</span>
+                <span class="s1">)</span>
+
+                <span class="s2">val </span><span class="s0">updatedTemplate </span><span class="s1">= </span><span class="s0">base</span><span class="s1">.</span><span class="s0">copy</span><span class="s1">(</span>
+                    <span class="s0">overrides </span><span class="s1">= (</span><span class="s0">filteredOverrides </span><span class="s1">+ </span><span class="s0">newOverride</span><span class="s1">).</span><span class="s0">sortedBy </span><span class="s1">{ </span><span class="s0">it</span><span class="s1">.</span><span class="s0">originalStart </span><span class="s1">}</span>
+                <span class="s1">)</span>
+                <span class="s0">vm</span><span class="s1">.</span><span class="s0">update</span><span class="s1">(</span><span class="s0">updatedTemplate</span><span class="s1">)</span>
+                <span class="s5">// ВАЖНО: присваиваем сконструированный объект, а не читаем .value</span>
+                <span class="s0">editing </span><span class="s1">= </span><span class="s0">updatedTemplate</span>
+            <span class="s1">},</span>
+            <span class="s0">onRemoveOverride </span><span class="s1">= { </span><span class="s0">originalStart </span><span class="s1">-&gt;</span>
+                <span class="s2">val </span><span class="s0">base </span><span class="s1">= </span><span class="s0">vm</span><span class="s1">.</span><span class="s0">templates</span><span class="s1">.</span><span class="s0">value</span><span class="s1">.</span><span class="s0">firstOrNull </span><span class="s1">{ </span><span class="s0">it</span><span class="s1">.</span><span class="s0">id </span><span class="s1">== </span><span class="s0">template</span><span class="s1">.</span><span class="s0">id </span><span class="s1">} </span><span class="s0">?: template</span>
+                <span class="s2">val </span><span class="s0">updatedTemplate </span><span class="s1">= </span><span class="s0">base</span><span class="s1">.</span><span class="s0">copy</span><span class="s1">(</span>
+                    <span class="s0">overrides </span><span class="s1">= </span><span class="s0">base</span><span class="s1">.</span><span class="s0">overrides</span><span class="s1">.</span><span class="s0">filterNot </span><span class="s1">{ </span><span class="s0">it</span><span class="s1">.</span><span class="s0">originalStart </span><span class="s1">== </span><span class="s0">originalStart </span><span class="s1">}</span>
+                <span class="s1">)</span>
+                <span class="s0">vm</span><span class="s1">.</span><span class="s0">update</span><span class="s1">(</span><span class="s0">updatedTemplate</span><span class="s1">)</span>
+                <span class="s5">// ВАЖНО: присваиваем сконструированный объект</span>
+                <span class="s0">editing </span><span class="s1">= </span><span class="s0">updatedTemplate</span>
+            <span class="s1">}</span>
+        <span class="s1">)</span>
+    <span class="s1">}</span>
+<span class="s1">}</span>
+
+<span class="s0">@Composable</span>
+<span class="s0">private </span><span class="s2">fun </span><span class="s0">TemplateRow</span><span class="s1">(</span>
+    <span class="s0">template: CycleTemplate</span><span class="s1">,</span>
+    <span class="s0">onClick: </span><span class="s1">() -&gt; </span><span class="s0">Unit</span>
+<span class="s1">) {</span>
+    <span class="s2">val </span><span class="s0">fmt </span><span class="s1">= </span><span class="s0">DateTimeFormatter</span><span class="s1">.</span><span class="s0">ofPattern</span><span class="s1">(</span><span class="s4">&quot;dd.MM.yyyy&quot;</span><span class="s1">)</span>
+    <span class="s2">val </span><span class="s0">displayName </span><span class="s1">= </span><span class="s0">template</span><span class="s1">.</span><span class="s0">customName</span><span class="s1">.</span><span class="s0">ifBlank </span><span class="s1">{</span>
+        <span class="s2">if </span><span class="s1">(</span><span class="s0">template</span><span class="s1">.</span><span class="s0">isMine</span><span class="s1">) </span><span class="s4">&quot;Мой состав&quot; </span><span class="s2">else </span><span class="s4">&quot;Сменщик&quot;</span>
+    <span class="s1">}</span>
+    <span class="s0">Card</span><span class="s1">(</span>
+        <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span>
+            <span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">()</span>
+            <span class="s1">.</span><span class="s0">clickable </span><span class="s1">{ </span><span class="s0">onClick</span><span class="s1">() },</span>
+        <span class="s0">colors </span><span class="s1">= </span><span class="s0">CardDefaults</span><span class="s1">.</span><span class="s0">cardColors</span><span class="s1">(</span>
+            <span class="s0">containerColor </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">surfaceVariant</span>
+        <span class="s1">)</span>
+    <span class="s1">) {</span>
+        <span class="s0">Row</span><span class="s1">(</span>
+            <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span>
+                <span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">()</span>
+                <span class="s1">.</span><span class="s0">padding</span><span class="s1">(</span><span class="s3">12</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">),</span>
+            <span class="s0">verticalAlignment </span><span class="s1">= </span><span class="s0">Alignment</span><span class="s1">.</span><span class="s0">CenterVertically</span>
+        <span class="s1">) {</span>
+            <span class="s0">Box</span><span class="s1">(</span>
+                <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span>
+                    <span class="s1">.</span><span class="s0">size</span><span class="s1">(</span><span class="s3">20</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">)</span>
+                    <span class="s1">.</span><span class="s0">clip</span><span class="s1">(</span><span class="s0">CircleShape</span><span class="s1">)</span>
+                    <span class="s1">.</span><span class="s0">background</span><span class="s1">(</span><span class="s0">Color</span><span class="s1">(</span><span class="s0">template</span><span class="s1">.</span><span class="s0">baseColor</span><span class="s1">))</span>
+            <span class="s1">)</span>
+            <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">width</span><span class="s1">(</span><span class="s3">12</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+            <span class="s0">Column</span><span class="s1">(</span><span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">weight</span><span class="s1">(</span><span class="s3">1f</span><span class="s1">)) {</span>
+                <span class="s0">Text</span><span class="s1">(</span>
+                    <span class="s0">text </span><span class="s1">= </span><span class="s0">displayName</span><span class="s1">,</span>
+                    <span class="s0">fontWeight </span><span class="s1">= </span><span class="s0">FontWeight</span><span class="s1">.</span><span class="s0">Bold</span><span class="s1">,</span>
+                    <span class="s0">fontSize </span><span class="s1">= </span><span class="s3">15</span><span class="s1">.</span><span class="s0">sp</span>
+                <span class="s1">)</span>
+                <span class="s2">if </span><span class="s1">(</span><span class="s0">template</span><span class="s1">.</span><span class="s0">isOneTime</span><span class="s1">) {</span>
+                    <span class="s0">Text</span><span class="s1">(</span>
+                        <span class="s0">text </span><span class="s1">= </span><span class="s4">&quot;Разовая · </span><span class="s2">${</span><span class="s0">template</span><span class="s1">.</span><span class="s0">startDate</span><span class="s1">.</span><span class="s0">format</span><span class="s1">(</span><span class="s0">fmt</span><span class="s1">)</span><span class="s2">} </span><span class="s4">— </span><span class="s2">${</span><span class="s0">template</span><span class="s1">.</span><span class="s0">endDate?</span><span class="s1">.</span><span class="s0">format</span><span class="s1">(</span><span class="s0">fmt</span><span class="s1">) </span><span class="s0">?: </span><span class="s4">&quot;?&quot;</span><span class="s2">}</span><span class="s4">&quot;</span><span class="s1">,</span>
+                        <span class="s0">fontSize </span><span class="s1">= </span><span class="s3">13</span><span class="s1">.</span><span class="s0">sp</span><span class="s1">,</span>
+                        <span class="s0">color </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">onSurfaceVariant</span>
+                    <span class="s1">)</span>
+                <span class="s1">} </span><span class="s2">else </span><span class="s1">{</span>
+                    <span class="s0">Text</span><span class="s1">(</span>
+                        <span class="s0">text </span><span class="s1">= </span><span class="s4">&quot;Циклическая · с </span><span class="s2">${</span><span class="s0">template</span><span class="s1">.</span><span class="s0">startDate</span><span class="s1">.</span><span class="s0">format</span><span class="s1">(</span><span class="s0">fmt</span><span class="s1">)</span><span class="s2">} </span><span class="s4">· </span><span class="s2">${</span><span class="s0">template</span><span class="s1">.</span><span class="s0">initialRule</span><span class="s1">.</span><span class="s0">workDays</span><span class="s2">}</span><span class="s4">/</span><span class="s2">${</span><span class="s0">template</span><span class="s1">.</span><span class="s0">initialRule</span><span class="s1">.</span><span class="s0">restDays</span><span class="s2">}</span><span class="s4">&quot;</span><span class="s1">,</span>
+                        <span class="s0">fontSize </span><span class="s1">= </span><span class="s3">13</span><span class="s1">.</span><span class="s0">sp</span><span class="s1">,</span>
+                        <span class="s0">color </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">onSurfaceVariant</span>
+                    <span class="s1">)</span>
+                    <span class="s2">if </span><span class="s1">(</span><span class="s0">template</span><span class="s1">.</span><span class="s0">overrides</span><span class="s1">.</span><span class="s0">isNotEmpty</span><span class="s1">()) {</span>
+                        <span class="s0">Text</span><span class="s1">(</span>
+                            <span class="s0">text </span><span class="s1">= </span><span class="s4">&quot;измененных вахт: </span><span class="s2">${</span><span class="s0">template</span><span class="s1">.</span><span class="s0">overrides</span><span class="s1">.</span><span class="s0">size</span><span class="s2">}</span><span class="s4">&quot;</span><span class="s1">,</span>
+                            <span class="s0">fontSize </span><span class="s1">= </span><span class="s3">12</span><span class="s1">.</span><span class="s0">sp</span><span class="s1">,</span>
+                            <span class="s0">color </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">primary</span>
+                        <span class="s1">)</span>
+                    <span class="s1">}</span>
+                <span class="s1">}</span>
+            <span class="s1">}</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+<span class="s1">}</span>
+
+<span class="s0">@Composable</span>
+<span class="s0">private </span><span class="s2">fun </span><span class="s0">DateField</span><span class="s1">(</span>
+    <span class="s0">label: String</span><span class="s1">,</span>
+    <span class="s0">date: LocalDate</span><span class="s1">,</span>
+    <span class="s0">onDateChange: </span><span class="s1">(</span><span class="s0">LocalDate</span><span class="s1">) -&gt; </span><span class="s0">Unit</span>
+<span class="s1">) {</span>
+    <span class="s2">var </span><span class="s0">showPicker by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s2">false</span><span class="s1">) }</span>
+    <span class="s2">val </span><span class="s0">fmt </span><span class="s1">= </span><span class="s0">DateTimeFormatter</span><span class="s1">.</span><span class="s0">ofPattern</span><span class="s1">(</span><span class="s4">&quot;dd.MM.yyyy&quot;</span><span class="s1">)</span>
+
+    <span class="s0">Box</span><span class="s1">(</span><span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">()) {</span>
+        <span class="s0">OutlinedTextField</span><span class="s1">(</span>
+            <span class="s0">value </span><span class="s1">= </span><span class="s0">date</span><span class="s1">.</span><span class="s0">format</span><span class="s1">(</span><span class="s0">fmt</span><span class="s1">),</span>
+            <span class="s0">onValueChange </span><span class="s1">= { },</span>
+            <span class="s0">label </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s0">label</span><span class="s1">) },</span>
+            <span class="s0">readOnly </span><span class="s1">= </span><span class="s2">true</span><span class="s1">,</span>
+            <span class="s0">enabled </span><span class="s1">= </span><span class="s2">false</span><span class="s1">,</span>
+            <span class="s0">singleLine </span><span class="s1">= </span><span class="s2">true</span><span class="s1">,</span>
+            <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">()</span>
+        <span class="s1">)</span>
+        <span class="s0">Box</span><span class="s1">(</span>
+            <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span>
+                <span class="s1">.</span><span class="s0">matchParentSize</span><span class="s1">()</span>
+                <span class="s1">.</span><span class="s0">clickable </span><span class="s1">{ </span><span class="s0">showPicker </span><span class="s1">= </span><span class="s2">true </span><span class="s1">}</span>
+        <span class="s1">)</span>
+    <span class="s1">}</span>
+
+    <span class="s2">if </span><span class="s1">(</span><span class="s0">showPicker</span><span class="s1">) {</span>
+        <span class="s2">val </span><span class="s0">state </span><span class="s1">= </span><span class="s0">rememberDatePickerState</span><span class="s1">(</span>
+            <span class="s0">initialSelectedDateMillis </span><span class="s1">= </span><span class="s0">date</span>
+                <span class="s1">.</span><span class="s0">atStartOfDay</span><span class="s1">(</span><span class="s0">ZoneOffset</span><span class="s1">.</span><span class="s0">UTC</span><span class="s1">)</span>
+                <span class="s1">.</span><span class="s0">toInstant</span><span class="s1">()</span>
+                <span class="s1">.</span><span class="s0">toEpochMilli</span><span class="s1">()</span>
+        <span class="s1">)</span>
+        <span class="s0">DatePickerDialog</span><span class="s1">(</span>
+            <span class="s0">onDismissRequest </span><span class="s1">= { </span><span class="s0">showPicker </span><span class="s1">= </span><span class="s2">false </span><span class="s1">},</span>
+            <span class="s0">confirmButton </span><span class="s1">= {</span>
+                <span class="s0">TextButton</span><span class="s1">(</span><span class="s0">onClick </span><span class="s1">= {</span>
+                    <span class="s2">val </span><span class="s0">millis </span><span class="s1">= </span><span class="s0">state</span><span class="s1">.</span><span class="s0">selectedDateMillis</span>
+                    <span class="s2">if </span><span class="s1">(</span><span class="s0">millis </span><span class="s1">!= </span><span class="s2">null</span><span class="s1">) {</span>
+                        <span class="s2">val </span><span class="s0">newDate </span><span class="s1">= </span><span class="s0">Instant</span><span class="s1">.</span><span class="s0">ofEpochMilli</span><span class="s1">(</span><span class="s0">millis</span><span class="s1">)</span>
+                            <span class="s1">.</span><span class="s0">atZone</span><span class="s1">(</span><span class="s0">ZoneOffset</span><span class="s1">.</span><span class="s0">UTC</span><span class="s1">)</span>
+                            <span class="s1">.</span><span class="s0">toLocalDate</span><span class="s1">()</span>
+                        <span class="s0">onDateChange</span><span class="s1">(</span><span class="s0">newDate</span><span class="s1">)</span>
+                    <span class="s1">}</span>
+                    <span class="s0">showPicker </span><span class="s1">= </span><span class="s2">false</span>
+                <span class="s1">}) { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;ОК&quot;</span><span class="s1">) }</span>
+            <span class="s1">},</span>
+            <span class="s0">dismissButton </span><span class="s1">= {</span>
+                <span class="s0">TextButton</span><span class="s1">(</span><span class="s0">onClick </span><span class="s1">= { </span><span class="s0">showPicker </span><span class="s1">= </span><span class="s2">false </span><span class="s1">}) { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Отмена&quot;</span><span class="s1">) }</span>
+            <span class="s1">}</span>
+        <span class="s1">) {</span>
+            <span class="s0">DatePicker</span><span class="s1">(</span><span class="s0">state </span><span class="s1">= </span><span class="s0">state</span><span class="s1">)</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+<span class="s1">}</span>
+
+<span class="s0">@Composable</span>
+<span class="s0">private </span><span class="s2">fun </span><span class="s0">ColorPicker</span><span class="s1">(</span>
+    <span class="s0">selected: Long</span><span class="s1">,</span>
+    <span class="s0">onSelect: </span><span class="s1">(</span><span class="s0">Long</span><span class="s1">) -&gt; </span><span class="s0">Unit</span>
+<span class="s1">) {</span>
+    <span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Цвет&quot;</span><span class="s1">, </span><span class="s0">fontSize </span><span class="s1">= </span><span class="s3">13</span><span class="s1">.</span><span class="s0">sp</span><span class="s1">, </span><span class="s0">fontWeight </span><span class="s1">= </span><span class="s0">FontWeight</span><span class="s1">.</span><span class="s0">Medium</span><span class="s1">)</span>
+    <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">6</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+    <span class="s0">Row</span><span class="s1">(</span><span class="s0">horizontalArrangement </span><span class="s1">= </span><span class="s0">Arrangement</span><span class="s1">.</span><span class="s0">spacedBy</span><span class="s1">(</span><span class="s3">8</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">)) {</span>
+        <span class="s0">PaletteColors</span><span class="s1">.</span><span class="s0">forEach </span><span class="s1">{ </span><span class="s0">c </span><span class="s1">-&gt;</span>
+            <span class="s0">Box</span><span class="s1">(</span>
+                <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span>
+                    <span class="s1">.</span><span class="s0">size</span><span class="s1">(</span><span class="s3">32</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">)</span>
+                    <span class="s1">.</span><span class="s0">clip</span><span class="s1">(</span><span class="s0">CircleShape</span><span class="s1">)</span>
+                    <span class="s1">.</span><span class="s0">background</span><span class="s1">(</span><span class="s0">Color</span><span class="s1">(</span><span class="s0">c</span><span class="s1">))</span>
+                    <span class="s1">.</span><span class="s0">then</span><span class="s1">(</span>
+                        <span class="s2">if </span><span class="s1">(</span><span class="s0">c </span><span class="s1">== </span><span class="s0">selected</span><span class="s1">) </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">border</span><span class="s1">(</span><span class="s3">2</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">, </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">onSurface</span><span class="s1">, </span><span class="s0">CircleShape</span><span class="s1">)</span>
+                        <span class="s2">else </span><span class="s0">Modifier</span>
+                    <span class="s1">)</span>
+                    <span class="s1">.</span><span class="s0">clickable </span><span class="s1">{ </span><span class="s0">onSelect</span><span class="s1">(</span><span class="s0">c</span><span class="s1">) },</span>
+                <span class="s0">contentAlignment </span><span class="s1">= </span><span class="s0">Alignment</span><span class="s1">.</span><span class="s0">Center</span>
+            <span class="s1">) {</span>
+                <span class="s2">if </span><span class="s1">(</span><span class="s0">c </span><span class="s1">== </span><span class="s0">selected</span><span class="s1">) {</span>
+                    <span class="s0">Icon</span><span class="s1">(</span>
+                        <span class="s0">imageVector </span><span class="s1">= </span><span class="s0">Icons</span><span class="s1">.</span><span class="s0">Default</span><span class="s1">.</span><span class="s0">Check</span><span class="s1">,</span>
+                        <span class="s0">contentDescription </span><span class="s1">= </span><span class="s2">null</span><span class="s1">,</span>
+                        <span class="s0">tint </span><span class="s1">= </span><span class="s0">Color</span><span class="s1">.</span><span class="s0">White</span><span class="s1">,</span>
+                        <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">size</span><span class="s1">(</span><span class="s3">18</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">)</span>
+                    <span class="s1">)</span>
+                <span class="s1">}</span>
+            <span class="s1">}</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+<span class="s1">}</span>
+
+<span class="s0">@Composable</span>
+<span class="s0">private </span><span class="s2">fun </span><span class="s0">EditShiftDialog</span><span class="s1">(</span>
+    <span class="s0">initial: CycleTemplate?</span><span class="s1">,</span>
+    <span class="s0">onDismiss: </span><span class="s1">() -&gt; </span><span class="s0">Unit</span><span class="s1">,</span>
+    <span class="s0">onSave: </span><span class="s1">(</span><span class="s0">CycleTemplate</span><span class="s1">) -&gt; </span><span class="s0">Unit</span><span class="s1">,</span>
+    <span class="s0">onDelete: </span><span class="s1">(() -&gt; </span><span class="s0">Unit</span><span class="s1">)</span><span class="s0">?</span><span class="s1">,</span>
+    <span class="s0">onAddSpecificShiftChange: </span><span class="s1">((</span><span class="s0">LocalDate</span><span class="s1">, </span><span class="s0">LocalDate</span><span class="s1">, </span><span class="s0">Int</span><span class="s1">, </span><span class="s0">Int</span><span class="s1">, </span><span class="s0">Boolean</span><span class="s1">) -&gt; </span><span class="s0">Unit</span><span class="s1">)</span><span class="s0">?</span><span class="s1">,</span>
+    <span class="s0">onRemoveOverride: </span><span class="s1">((</span><span class="s0">LocalDate</span><span class="s1">) -&gt; </span><span class="s0">Unit</span><span class="s1">)</span><span class="s0">? </span><span class="s1">= </span><span class="s2">null</span>
+<span class="s1">) {</span>
+    <span class="s2">val </span><span class="s0">isEdit </span><span class="s1">= </span><span class="s0">initial </span><span class="s1">!= </span><span class="s2">null</span>
+    <span class="s2">var </span><span class="s0">isOneTime by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s0">initial?</span><span class="s1">.</span><span class="s0">isOneTime ?: </span><span class="s2">false</span><span class="s1">) }</span>
+    <span class="s2">var </span><span class="s0">startDate by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s0">initial?</span><span class="s1">.</span><span class="s0">startDate ?: LocalDate</span><span class="s1">.</span><span class="s0">now</span><span class="s1">()) }</span>
+    <span class="s2">var </span><span class="s0">endDate by remember </span><span class="s1">{</span>
+        <span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s0">initial?</span><span class="s1">.</span><span class="s0">endDate ?: LocalDate</span><span class="s1">.</span><span class="s0">now</span><span class="s1">().</span><span class="s0">plusDays</span><span class="s1">(</span><span class="s3">14</span><span class="s1">))</span>
+    <span class="s1">}</span>
+    <span class="s2">var </span><span class="s0">workText by remember </span><span class="s1">{</span>
+        <span class="s0">mutableStateOf</span><span class="s1">((</span><span class="s0">initial?</span><span class="s1">.</span><span class="s0">initialRule?</span><span class="s1">.</span><span class="s0">workDays ?: </span><span class="s3">15</span><span class="s1">).</span><span class="s0">toString</span><span class="s1">())</span>
+    <span class="s1">}</span>
+    <span class="s2">var </span><span class="s0">restText by remember </span><span class="s1">{</span>
+        <span class="s0">mutableStateOf</span><span class="s1">((</span><span class="s0">initial?</span><span class="s1">.</span><span class="s0">initialRule?</span><span class="s1">.</span><span class="s0">restDays ?: </span><span class="s3">15</span><span class="s1">).</span><span class="s0">toString</span><span class="s1">())</span>
+    <span class="s1">}</span>
+    <span class="s2">var </span><span class="s0">isMine by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s0">initial?</span><span class="s1">.</span><span class="s0">isMine ?: </span><span class="s2">false</span><span class="s1">) }</span>
+    <span class="s2">var </span><span class="s0">customName by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s0">initial?</span><span class="s1">.</span><span class="s0">customName ?: </span><span class="s4">&quot;&quot;</span><span class="s1">) }</span>
+    <span class="s2">var </span><span class="s0">color by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s0">initial?</span><span class="s1">.</span><span class="s0">baseColor ?: PaletteColors</span><span class="s1">[</span><span class="s3">0</span><span class="s1">]) }</span>
+
+    <span class="s2">var </span><span class="s0">showShiftSelection by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s2">false</span><span class="s1">) }</span>
+    <span class="s2">var </span><span class="s0">selectedShiftToEdit by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">&lt;</span><span class="s0">ShiftEntry?</span><span class="s1">&gt;(</span><span class="s2">null</span><span class="s1">) }</span>
+
+    <span class="s2">val </span><span class="s0">currentOverrides: List</span><span class="s1">&lt;</span><span class="s0">ShiftOverride</span><span class="s1">&gt; = </span><span class="s0">initial?</span><span class="s1">.</span><span class="s0">overrides ?: emptyList</span><span class="s1">()</span>
+    <span class="s2">val </span><span class="s0">fmt </span><span class="s1">= </span><span class="s0">DateTimeFormatter</span><span class="s1">.</span><span class="s0">ofPattern</span><span class="s1">(</span><span class="s4">&quot;dd.MM.yyyy&quot;</span><span class="s1">)</span>
+
+    <span class="s0">AlertDialog</span><span class="s1">(</span>
+        <span class="s0">onDismissRequest </span><span class="s1">= </span><span class="s0">onDismiss</span><span class="s1">,</span>
+        <span class="s0">title </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s2">if </span><span class="s1">(</span><span class="s0">isEdit</span><span class="s1">) </span><span class="s4">&quot;Редактировать вахту&quot; </span><span class="s2">else </span><span class="s4">&quot;Новая вахта&quot;</span><span class="s1">) },</span>
+        <span class="s0">text </span><span class="s1">= {</span>
+            <span class="s0">Column</span><span class="s1">(</span>
+                <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span>
+                    <span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">()</span>
+                    <span class="s1">.</span><span class="s0">verticalScroll</span><span class="s1">(</span><span class="s0">rememberScrollState</span><span class="s1">())</span>
+            <span class="s1">) {</span>
+                <span class="s2">if </span><span class="s1">(</span><span class="s0">isEdit </span><span class="s1">&amp;&amp; !</span><span class="s0">isOneTime </span><span class="s1">&amp;&amp; </span><span class="s0">onAddSpecificShiftChange </span><span class="s1">!= </span><span class="s2">null</span><span class="s1">) {</span>
+                    <span class="s0">Button</span><span class="s1">(</span>
+                        <span class="s0">onClick </span><span class="s1">= { </span><span class="s0">showShiftSelection </span><span class="s1">= </span><span class="s2">true </span><span class="s1">},</span>
+                        <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">(),</span>
+                        <span class="s0">colors </span><span class="s1">= </span><span class="s0">ButtonDefaults</span><span class="s1">.</span><span class="s0">buttonColors</span><span class="s1">(</span>
+                            <span class="s0">containerColor </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">secondaryContainer</span><span class="s1">,</span>
+                            <span class="s0">contentColor </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">onSecondaryContainer</span>
+                        <span class="s1">)</span>
+                    <span class="s1">) {</span>
+                        <span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Изменить конкретную вахту&quot;</span><span class="s1">)</span>
+                    <span class="s1">}</span>
+                    <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">12</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+                <span class="s1">}</span>
+
+                <span class="s2">if </span><span class="s1">(</span><span class="s0">isEdit </span><span class="s1">&amp;&amp; </span><span class="s0">onDelete </span><span class="s1">!= </span><span class="s2">null</span><span class="s1">) {</span>
+                    <span class="s0">TextButton</span><span class="s1">(</span><span class="s0">onClick </span><span class="s1">= </span><span class="s0">onDelete</span><span class="s1">) {</span>
+                        <span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Удалить вахту&quot;</span><span class="s1">, </span><span class="s0">color </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">error</span><span class="s1">)</span>
+                    <span class="s1">}</span>
+                <span class="s1">}</span>
+
+                <span class="s0">OutlinedTextField</span><span class="s1">(</span>
+                    <span class="s0">value </span><span class="s1">= </span><span class="s0">customName</span><span class="s1">,</span>
+                    <span class="s0">onValueChange </span><span class="s1">= { </span><span class="s0">customName </span><span class="s1">= </span><span class="s0">it </span><span class="s1">},</span>
+                    <span class="s0">label </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Название состава&quot;</span><span class="s1">) },</span>
+                    <span class="s0">placeholder </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s2">if </span><span class="s1">(</span><span class="s0">isMine</span><span class="s1">) </span><span class="s4">&quot;Мой состав&quot; </span><span class="s2">else </span><span class="s4">&quot;Сменщик&quot;</span><span class="s1">) },</span>
+                    <span class="s0">singleLine </span><span class="s1">= </span><span class="s2">true</span><span class="s1">,</span>
+                    <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">()</span>
+                <span class="s1">)</span>
+                <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">8</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+
+                <span class="s0">ColorPicker</span><span class="s1">(</span><span class="s0">selected </span><span class="s1">= </span><span class="s0">color</span><span class="s1">, </span><span class="s0">onSelect </span><span class="s1">= { </span><span class="s0">color </span><span class="s1">= </span><span class="s0">it </span><span class="s1">})</span>
+                <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">8</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+
+                <span class="s0">Row</span><span class="s1">(</span><span class="s0">horizontalArrangement </span><span class="s1">= </span><span class="s0">Arrangement</span><span class="s1">.</span><span class="s0">spacedBy</span><span class="s1">(</span><span class="s3">8</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">)) {</span>
+                    <span class="s0">FilterChip</span><span class="s1">(</span>
+                        <span class="s0">selected </span><span class="s1">= !</span><span class="s0">isOneTime</span><span class="s1">,</span>
+                        <span class="s0">onClick </span><span class="s1">= { </span><span class="s0">isOneTime </span><span class="s1">= </span><span class="s2">false </span><span class="s1">},</span>
+                        <span class="s0">label </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Циклическая&quot;</span><span class="s1">) }</span>
+                    <span class="s1">)</span>
+                    <span class="s0">FilterChip</span><span class="s1">(</span>
+                        <span class="s0">selected </span><span class="s1">= </span><span class="s0">isOneTime</span><span class="s1">,</span>
+                        <span class="s0">onClick </span><span class="s1">= { </span><span class="s0">isOneTime </span><span class="s1">= </span><span class="s2">true </span><span class="s1">},</span>
+                        <span class="s0">label </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Разовая&quot;</span><span class="s1">) }</span>
+                    <span class="s1">)</span>
+                <span class="s1">}</span>
+                <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">8</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+                <span class="s0">DateField</span><span class="s1">(</span>
+                    <span class="s0">label </span><span class="s1">= </span><span class="s4">&quot;Дата начала&quot;</span><span class="s1">,</span>
+                    <span class="s0">date </span><span class="s1">= </span><span class="s0">startDate</span><span class="s1">,</span>
+                    <span class="s0">onDateChange </span><span class="s1">= { </span><span class="s0">startDate </span><span class="s1">= </span><span class="s0">it </span><span class="s1">}</span>
+                <span class="s1">)</span>
+                <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">8</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+
+                <span class="s2">if </span><span class="s1">(</span><span class="s0">isOneTime</span><span class="s1">) {</span>
+                    <span class="s0">DateField</span><span class="s1">(</span>
+                        <span class="s0">label </span><span class="s1">= </span><span class="s4">&quot;Дата конца&quot;</span><span class="s1">,</span>
+                        <span class="s0">date </span><span class="s1">= </span><span class="s0">endDate</span><span class="s1">,</span>
+                        <span class="s0">onDateChange </span><span class="s1">= { </span><span class="s0">endDate </span><span class="s1">= </span><span class="s0">it </span><span class="s1">}</span>
+                    <span class="s1">)</span>
+                <span class="s1">} </span><span class="s2">else </span><span class="s1">{</span>
+                    <span class="s0">OutlinedTextField</span><span class="s1">(</span>
+                        <span class="s0">value </span><span class="s1">= </span><span class="s0">workText</span><span class="s1">,</span>
+                        <span class="s0">onValueChange </span><span class="s1">= { </span><span class="s0">workText </span><span class="s1">= </span><span class="s0">it</span><span class="s1">.</span><span class="s0">filter </span><span class="s1">{ </span><span class="s0">c </span><span class="s1">-&gt; </span><span class="s0">c</span><span class="s1">.</span><span class="s0">isDigit</span><span class="s1">() } },</span>
+                        <span class="s0">label </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Рабочих дней&quot;</span><span class="s1">) },</span>
+                        <span class="s0">singleLine </span><span class="s1">= </span><span class="s2">true</span><span class="s1">,</span>
+                        <span class="s0">keyboardOptions </span><span class="s1">= </span><span class="s0">KeyboardOptions</span><span class="s1">(</span><span class="s0">keyboardType </span><span class="s1">= </span><span class="s0">KeyboardType</span><span class="s1">.</span><span class="s0">Number</span><span class="s1">),</span>
+                        <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">()</span>
+                    <span class="s1">)</span>
+                    <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">8</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+                    <span class="s0">OutlinedTextField</span><span class="s1">(</span>
+                        <span class="s0">value </span><span class="s1">= </span><span class="s0">restText</span><span class="s1">,</span>
+                        <span class="s0">onValueChange </span><span class="s1">= { </span><span class="s0">restText </span><span class="s1">= </span><span class="s0">it</span><span class="s1">.</span><span class="s0">filter </span><span class="s1">{ </span><span class="s0">c </span><span class="s1">-&gt; </span><span class="s0">c</span><span class="s1">.</span><span class="s0">isDigit</span><span class="s1">() } },</span>
+                        <span class="s0">label </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Дней отдыха&quot;</span><span class="s1">) },</span>
+                        <span class="s0">singleLine </span><span class="s1">= </span><span class="s2">true</span><span class="s1">,</span>
+                        <span class="s0">keyboardOptions </span><span class="s1">= </span><span class="s0">KeyboardOptions</span><span class="s1">(</span><span class="s0">keyboardType </span><span class="s1">= </span><span class="s0">KeyboardType</span><span class="s1">.</span><span class="s0">Number</span><span class="s1">),</span>
+                        <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">()</span>
+                    <span class="s1">)</span>
+                    <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">4</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+
+                    <span class="s0">Row</span><span class="s1">(</span><span class="s0">verticalAlignment </span><span class="s1">= </span><span class="s0">Alignment</span><span class="s1">.</span><span class="s0">CenterVertically</span><span class="s1">) {</span>
+                        <span class="s0">Checkbox</span><span class="s1">(</span>
+                            <span class="s0">checked </span><span class="s1">= </span><span class="s0">isMine</span><span class="s1">,</span>
+                            <span class="s0">onCheckedChange </span><span class="s1">= { </span><span class="s0">isMine </span><span class="s1">= </span><span class="s0">it </span><span class="s1">}</span>
+                        <span class="s1">)</span>
+                        <span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Это мой состав&quot;</span><span class="s1">, </span><span class="s0">fontSize </span><span class="s1">= </span><span class="s3">13</span><span class="s1">.</span><span class="s0">sp</span><span class="s1">)</span>
+                    <span class="s1">}</span>
+
+                    <span class="s2">if </span><span class="s1">(</span><span class="s0">isEdit </span><span class="s1">&amp;&amp; </span><span class="s0">currentOverrides</span><span class="s1">.</span><span class="s0">isNotEmpty</span><span class="s1">()) {</span>
+                        <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">12</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+                        <span class="s0">Text</span><span class="s1">(</span>
+                            <span class="s0">text </span><span class="s1">= </span><span class="s4">&quot;Измененные вахты:&quot;</span><span class="s1">,</span>
+                            <span class="s0">fontWeight </span><span class="s1">= </span><span class="s0">FontWeight</span><span class="s1">.</span><span class="s0">Bold</span><span class="s1">,</span>
+                            <span class="s0">fontSize </span><span class="s1">= </span><span class="s3">14</span><span class="s1">.</span><span class="s0">sp</span>
+                        <span class="s1">)</span>
+                        <span class="s0">currentOverrides</span><span class="s1">.</span><span class="s0">sortedBy </span><span class="s1">{ </span><span class="s0">it</span><span class="s1">.</span><span class="s0">originalStart </span><span class="s1">}.</span><span class="s0">forEach </span><span class="s1">{ </span><span class="s0">ov </span><span class="s1">-&gt;</span>
+                            <span class="s0">Row</span><span class="s1">(</span>
+                                <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">(),</span>
+                                <span class="s0">verticalAlignment </span><span class="s1">= </span><span class="s0">Alignment</span><span class="s1">.</span><span class="s0">CenterVertically</span>
+                            <span class="s1">) {</span>
+                                <span class="s0">Column</span><span class="s1">(</span><span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">weight</span><span class="s1">(</span><span class="s3">1f</span><span class="s1">)) {</span>
+                                    <span class="s0">Text</span><span class="s1">(</span>
+                                        <span class="s0">text </span><span class="s1">= </span><span class="s4">&quot;Было: </span><span class="s2">${</span><span class="s0">ov</span><span class="s1">.</span><span class="s0">originalStart</span><span class="s1">.</span><span class="s0">format</span><span class="s1">(</span><span class="s0">fmt</span><span class="s1">)</span><span class="s2">}</span><span class="s4">&quot;</span><span class="s1">,</span>
+                                        <span class="s0">fontSize </span><span class="s1">= </span><span class="s3">13</span><span class="s1">.</span><span class="s0">sp</span>
+                                    <span class="s1">)</span>
+                                    <span class="s0">Text</span><span class="s1">(</span>
+                                        <span class="s0">text </span><span class="s1">= </span><span class="s4">&quot;Стало: </span><span class="s2">${</span><span class="s0">ov</span><span class="s1">.</span><span class="s0">newStart</span><span class="s1">.</span><span class="s0">format</span><span class="s1">(</span><span class="s0">fmt</span><span class="s1">)</span><span class="s2">} </span><span class="s4">· </span><span class="s2">${</span><span class="s0">ov</span><span class="s1">.</span><span class="s0">workDays</span><span class="s2">}</span><span class="s4">/</span><span class="s2">${</span><span class="s0">ov</span><span class="s1">.</span><span class="s0">restDays</span><span class="s2">}</span><span class="s4">&quot;</span><span class="s1">,</span>
+                                        <span class="s0">fontSize </span><span class="s1">= </span><span class="s3">12</span><span class="s1">.</span><span class="s0">sp</span><span class="s1">,</span>
+                                        <span class="s0">color </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">onSurfaceVariant</span>
+                                    <span class="s1">)</span>
+                                <span class="s1">}</span>
+                                <span class="s0">IconButton</span><span class="s1">(</span><span class="s0">onClick </span><span class="s1">= {</span>
+                                    <span class="s2">if </span><span class="s1">(</span><span class="s0">onRemoveOverride </span><span class="s1">!= </span><span class="s2">null</span><span class="s1">) {</span>
+                                        <span class="s0">onRemoveOverride</span><span class="s1">(</span><span class="s0">ov</span><span class="s1">.</span><span class="s0">originalStart</span><span class="s1">)</span>
+                                    <span class="s1">}</span>
+                                <span class="s1">}) {</span>
+                                    <span class="s0">Icon</span><span class="s1">(</span><span class="s0">Icons</span><span class="s1">.</span><span class="s0">Default</span><span class="s1">.</span><span class="s0">Close</span><span class="s1">, </span><span class="s0">contentDescription </span><span class="s1">= </span><span class="s4">&quot;Удалить&quot;</span><span class="s1">)</span>
+                                <span class="s1">}</span>
+                            <span class="s1">}</span>
+                        <span class="s1">}</span>
+                    <span class="s1">}</span>
+                <span class="s1">}</span>
+            <span class="s1">}</span>
+        <span class="s1">},</span>
+        <span class="s0">confirmButton </span><span class="s1">= {</span>
+            <span class="s0">TextButton</span><span class="s1">(</span><span class="s0">onClick </span><span class="s1">= {</span>
+                <span class="s2">val </span><span class="s0">id </span><span class="s1">= </span><span class="s0">initial?</span><span class="s1">.</span><span class="s0">id ?: </span><span class="s3">0L</span>
+                <span class="s2">val </span><span class="s0">newTemplate: CycleTemplate</span>
+                <span class="s2">if </span><span class="s1">(</span><span class="s0">isOneTime</span><span class="s1">) {</span>
+                    <span class="s2">if </span><span class="s1">(</span><span class="s0">endDate</span><span class="s1">.</span><span class="s0">isBefore</span><span class="s1">(</span><span class="s0">startDate</span><span class="s1">)) </span><span class="s2">return</span><span class="s0">@TextButton</span>
+                    <span class="s0">newTemplate </span><span class="s1">= </span><span class="s0">CycleTemplate</span><span class="s1">(</span>
+                        <span class="s0">id </span><span class="s1">= </span><span class="s0">id</span><span class="s1">,</span>
+                        <span class="s0">initialRule </span><span class="s1">= </span><span class="s0">CycleRule</span><span class="s1">(</span><span class="s0">workDays </span><span class="s1">= </span><span class="s3">1</span><span class="s1">, </span><span class="s0">restDays </span><span class="s1">= </span><span class="s3">0</span><span class="s1">),</span>
+                        <span class="s0">startDate </span><span class="s1">= </span><span class="s0">startDate</span><span class="s1">,</span>
+                        <span class="s0">endDate </span><span class="s1">= </span><span class="s0">endDate</span><span class="s1">,</span>
+                        <span class="s0">isOneTime </span><span class="s1">= </span><span class="s2">true</span><span class="s1">,</span>
+                        <span class="s0">baseColor </span><span class="s1">= </span><span class="s0">color</span><span class="s1">,</span>
+                        <span class="s0">overrides </span><span class="s1">= </span><span class="s0">initial?</span><span class="s1">.</span><span class="s0">overrides ?: emptyList</span><span class="s1">(),</span>
+                        <span class="s0">countBackward </span><span class="s1">= </span><span class="s2">false</span><span class="s1">,</span>
+                        <span class="s0">backwardLimitMonths </span><span class="s1">= </span><span class="s3">0</span><span class="s1">,</span>
+                        <span class="s0">isMine </span><span class="s1">= </span><span class="s0">isMine</span><span class="s1">,</span>
+                        <span class="s0">customName </span><span class="s1">= </span><span class="s0">customName</span><span class="s1">.</span><span class="s0">trim</span><span class="s1">()</span>
+                    <span class="s1">)</span>
+                <span class="s1">} </span><span class="s2">else </span><span class="s1">{</span>
+                    <span class="s2">val </span><span class="s0">work </span><span class="s1">= </span><span class="s0">workText</span><span class="s1">.</span><span class="s0">toIntOrNull</span><span class="s1">() </span><span class="s0">?: </span><span class="s2">return</span><span class="s0">@TextButton</span>
+                    <span class="s2">val </span><span class="s0">rest </span><span class="s1">= </span><span class="s0">restText</span><span class="s1">.</span><span class="s0">toIntOrNull</span><span class="s1">() </span><span class="s0">?: </span><span class="s2">return</span><span class="s0">@TextButton</span>
+                    <span class="s2">if </span><span class="s1">(</span><span class="s0">work </span><span class="s1">&lt;= </span><span class="s3">0</span><span class="s1">) </span><span class="s2">return</span><span class="s0">@TextButton</span>
+                    <span class="s0">newTemplate </span><span class="s1">= </span><span class="s0">CycleTemplate</span><span class="s1">(</span>
+                        <span class="s0">id </span><span class="s1">= </span><span class="s0">id</span><span class="s1">,</span>
+                        <span class="s0">initialRule </span><span class="s1">= </span><span class="s0">CycleRule</span><span class="s1">(</span><span class="s0">workDays </span><span class="s1">= </span><span class="s0">work</span><span class="s1">, </span><span class="s0">restDays </span><span class="s1">= </span><span class="s0">rest</span><span class="s1">),</span>
+                        <span class="s0">startDate </span><span class="s1">= </span><span class="s0">startDate</span><span class="s1">,</span>
+                        <span class="s0">endDate </span><span class="s1">= </span><span class="s2">null</span><span class="s1">,</span>
+                        <span class="s0">isOneTime </span><span class="s1">= </span><span class="s2">false</span><span class="s1">,</span>
+                        <span class="s0">baseColor </span><span class="s1">= </span><span class="s0">color</span><span class="s1">,</span>
+                        <span class="s0">overrides </span><span class="s1">= </span><span class="s0">initial?</span><span class="s1">.</span><span class="s0">overrides ?: emptyList</span><span class="s1">(),</span>
+                        <span class="s0">countBackward </span><span class="s1">= </span><span class="s2">false</span><span class="s1">,</span>
+                        <span class="s0">backwardLimitMonths </span><span class="s1">= </span><span class="s3">0</span><span class="s1">,</span>
+                        <span class="s0">isMine </span><span class="s1">= </span><span class="s0">isMine</span><span class="s1">,</span>
+                        <span class="s0">customName </span><span class="s1">= </span><span class="s0">customName</span><span class="s1">.</span><span class="s0">trim</span><span class="s1">()</span>
+                    <span class="s1">)</span>
+                <span class="s1">}</span>
+                <span class="s0">onSave</span><span class="s1">(</span><span class="s0">newTemplate</span><span class="s1">)</span>
+            <span class="s1">}) { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Сохранить&quot;</span><span class="s1">) }</span>
+        <span class="s1">},</span>
+        <span class="s0">dismissButton </span><span class="s1">= {</span>
+            <span class="s0">TextButton</span><span class="s1">(</span><span class="s0">onClick </span><span class="s1">= </span><span class="s0">onDismiss</span><span class="s1">) { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Отмена&quot;</span><span class="s1">) }</span>
+        <span class="s1">}</span>
+    <span class="s1">)</span>
+
+    <span class="s2">if </span><span class="s1">(</span><span class="s0">showShiftSelection </span><span class="s1">&amp;&amp; </span><span class="s0">initial </span><span class="s1">!= </span><span class="s2">null </span><span class="s1">&amp;&amp; </span><span class="s0">onAddSpecificShiftChange </span><span class="s1">!= </span><span class="s2">null</span><span class="s1">) {</span>
+        <span class="s0">ShiftSelectionDialog</span><span class="s1">(</span>
+            <span class="s0">template </span><span class="s1">= </span><span class="s0">initial</span><span class="s1">,</span>
+            <span class="s0">onDismiss </span><span class="s1">= { </span><span class="s0">showShiftSelection </span><span class="s1">= </span><span class="s2">false </span><span class="s1">},</span>
+            <span class="s0">onSelect </span><span class="s1">= { </span><span class="s0">shift </span><span class="s1">-&gt;</span>
+                <span class="s0">selectedShiftToEdit </span><span class="s1">= </span><span class="s0">shift</span>
+                <span class="s0">showShiftSelection </span><span class="s1">= </span><span class="s2">false</span>
+            <span class="s1">}</span>
+        <span class="s1">)</span>
+    <span class="s1">}</span>
+
+    <span class="s2">if </span><span class="s1">(</span><span class="s0">selectedShiftToEdit </span><span class="s1">!= </span><span class="s2">null </span><span class="s1">&amp;&amp; </span><span class="s0">initial </span><span class="s1">!= </span><span class="s2">null </span><span class="s1">&amp;&amp; </span><span class="s0">onAddSpecificShiftChange </span><span class="s1">!= </span><span class="s2">null</span><span class="s1">) {</span>
+        <span class="s0">EditSpecificShiftDialog</span><span class="s1">(</span>
+            <span class="s0">shift </span><span class="s1">= </span><span class="s0">selectedShiftToEdit</span><span class="s1">!!,</span>
+            <span class="s0">defaultWorkDays </span><span class="s1">= </span><span class="s0">initial</span><span class="s1">.</span><span class="s0">initialRule</span><span class="s1">.</span><span class="s0">workDays</span><span class="s1">,</span>
+            <span class="s0">defaultRestDays </span><span class="s1">= </span><span class="s0">initial</span><span class="s1">.</span><span class="s0">initialRule</span><span class="s1">.</span><span class="s0">restDays</span><span class="s1">,</span>
+            <span class="s0">onDismiss </span><span class="s1">= { </span><span class="s0">selectedShiftToEdit </span><span class="s1">= </span><span class="s2">null </span><span class="s1">},</span>
+            <span class="s0">onConfirm </span><span class="s1">= { </span><span class="s0">originalStart</span><span class="s1">, </span><span class="s0">newStart</span><span class="s1">, </span><span class="s0">work</span><span class="s1">, </span><span class="s0">rest</span><span class="s1">, </span><span class="s0">shiftSubsequent </span><span class="s1">-&gt;</span>
+                <span class="s0">onAddSpecificShiftChange</span><span class="s1">(</span><span class="s0">originalStart</span><span class="s1">, </span><span class="s0">newStart</span><span class="s1">, </span><span class="s0">work</span><span class="s1">, </span><span class="s0">rest</span><span class="s1">, </span><span class="s0">shiftSubsequent</span><span class="s1">)</span>
+                <span class="s0">selectedShiftToEdit </span><span class="s1">= </span><span class="s2">null</span>
+            <span class="s1">}</span>
+        <span class="s1">)</span>
+    <span class="s1">}</span>
+<span class="s1">}</span>
+
+<span class="s0">@Composable</span>
+<span class="s0">private </span><span class="s2">fun </span><span class="s0">ShiftSelectionDialog</span><span class="s1">(</span>
+    <span class="s0">template: CycleTemplate</span><span class="s1">,</span>
+    <span class="s0">onDismiss: </span><span class="s1">() -&gt; </span><span class="s0">Unit</span><span class="s1">,</span>
+    <span class="s0">onSelect: </span><span class="s1">(</span><span class="s0">ShiftEntry</span><span class="s1">) -&gt; </span><span class="s0">Unit</span>
+<span class="s1">) {</span>
+    <span class="s2">val </span><span class="s0">today </span><span class="s1">= </span><span class="s0">LocalDate</span><span class="s1">.</span><span class="s0">now</span><span class="s1">()</span>
+    <span class="s2">val </span><span class="s0">horizon </span><span class="s1">= </span><span class="s0">today</span><span class="s1">.</span><span class="s0">plusMonths</span><span class="s1">(</span><span class="s3">36</span><span class="s1">)</span>
+
+    <span class="s2">val </span><span class="s0">shifts </span><span class="s1">= </span><span class="s0">remember</span><span class="s1">(</span><span class="s0">template</span><span class="s1">) {</span>
+        <span class="s0">CycleCalculator</span><span class="s1">.</span><span class="s0">expandCycleToDays</span><span class="s1">(</span><span class="s0">template</span><span class="s1">, </span><span class="s0">today</span><span class="s1">, </span><span class="s0">horizon</span><span class="s1">)</span>
+            <span class="s1">.</span><span class="s0">filter </span><span class="s1">{ !</span><span class="s0">it</span><span class="s1">.</span><span class="s0">end</span><span class="s1">.</span><span class="s0">isBefore</span><span class="s1">(</span><span class="s0">today</span><span class="s1">) }</span>
+    <span class="s1">}</span>
+    <span class="s2">val </span><span class="s0">fmt </span><span class="s1">= </span><span class="s0">DateTimeFormatter</span><span class="s1">.</span><span class="s0">ofPattern</span><span class="s1">(</span><span class="s4">&quot;dd.MM.yyyy&quot;</span><span class="s1">)</span>
+
+    <span class="s0">AlertDialog</span><span class="s1">(</span>
+        <span class="s0">onDismissRequest </span><span class="s1">= </span><span class="s0">onDismiss</span><span class="s1">,</span>
+        <span class="s0">title </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Выберите вахту для изменения&quot;</span><span class="s1">) },</span>
+        <span class="s0">text </span><span class="s1">= {</span>
+            <span class="s2">if </span><span class="s1">(</span><span class="s0">shifts</span><span class="s1">.</span><span class="s0">isEmpty</span><span class="s1">()) {</span>
+                <span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Будущих вахт не найдено. Проверьте настройки цикла.&quot;</span><span class="s1">)</span>
+            <span class="s1">} </span><span class="s2">else </span><span class="s1">{</span>
+                <span class="s0">LazyColumn</span><span class="s1">(</span>
+                    <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">(),</span>
+                    <span class="s0">verticalArrangement </span><span class="s1">= </span><span class="s0">Arrangement</span><span class="s1">.</span><span class="s0">spacedBy</span><span class="s1">(</span><span class="s3">8</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">)</span>
+                <span class="s1">) {</span>
+                    <span class="s0">items</span><span class="s1">(</span><span class="s0">shifts</span><span class="s1">) { </span><span class="s0">shift </span><span class="s1">-&gt;</span>
+                        <span class="s0">Card</span><span class="s1">(</span>
+                            <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span>
+                                <span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">()</span>
+                                <span class="s1">.</span><span class="s0">clickable </span><span class="s1">{ </span><span class="s0">onSelect</span><span class="s1">(</span><span class="s0">shift</span><span class="s1">) },</span>
+                            <span class="s0">colors </span><span class="s1">= </span><span class="s0">CardDefaults</span><span class="s1">.</span><span class="s0">cardColors</span><span class="s1">(</span>
+                                <span class="s0">containerColor </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">surfaceVariant</span>
+                            <span class="s1">)</span>
+                        <span class="s1">) {</span>
+                            <span class="s0">Column</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">padding</span><span class="s1">(</span><span class="s3">12</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">)) {</span>
+                                <span class="s0">Text</span><span class="s1">(</span>
+                                    <span class="s4">&quot;С </span><span class="s2">${</span><span class="s0">shift</span><span class="s1">.</span><span class="s0">start</span><span class="s1">.</span><span class="s0">format</span><span class="s1">(</span><span class="s0">fmt</span><span class="s1">)</span><span class="s2">} </span><span class="s4">по </span><span class="s2">${</span><span class="s0">shift</span><span class="s1">.</span><span class="s0">end</span><span class="s1">.</span><span class="s0">format</span><span class="s1">(</span><span class="s0">fmt</span><span class="s1">)</span><span class="s2">}</span><span class="s4">&quot;</span><span class="s1">,</span>
+                                    <span class="s0">fontWeight </span><span class="s1">= </span><span class="s0">FontWeight</span><span class="s1">.</span><span class="s0">Bold</span>
+                                <span class="s1">)</span>
+                                <span class="s0">Text</span><span class="s1">(</span>
+                                    <span class="s4">&quot;Длительность: </span><span class="s2">${</span><span class="s0">shift</span><span class="s1">.</span><span class="s0">end</span><span class="s1">.</span><span class="s0">toEpochDay</span><span class="s1">() - </span><span class="s0">shift</span><span class="s1">.</span><span class="s0">start</span><span class="s1">.</span><span class="s0">toEpochDay</span><span class="s1">() + </span><span class="s3">1</span><span class="s2">} </span><span class="s4">дн.&quot;</span><span class="s1">,</span>
+                                    <span class="s0">fontSize </span><span class="s1">= </span><span class="s3">12</span><span class="s1">.</span><span class="s0">sp</span><span class="s1">,</span>
+                                    <span class="s0">color </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">onSurfaceVariant</span>
+                                <span class="s1">)</span>
+                            <span class="s1">}</span>
+                        <span class="s1">}</span>
+                    <span class="s1">}</span>
+                <span class="s1">}</span>
+            <span class="s1">}</span>
+        <span class="s1">},</span>
+        <span class="s0">confirmButton </span><span class="s1">= {</span>
+            <span class="s0">TextButton</span><span class="s1">(</span><span class="s0">onClick </span><span class="s1">= </span><span class="s0">onDismiss</span><span class="s1">) { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Закрыть&quot;</span><span class="s1">) }</span>
+        <span class="s1">}</span>
+    <span class="s1">)</span>
+<span class="s1">}</span>
+
+<span class="s0">@Composable</span>
+<span class="s0">private </span><span class="s2">fun </span><span class="s0">EditSpecificShiftDialog</span><span class="s1">(</span>
+    <span class="s0">shift: ShiftEntry</span><span class="s1">,</span>
+    <span class="s0">defaultWorkDays: Int</span><span class="s1">,</span>
+    <span class="s0">defaultRestDays: Int</span><span class="s1">,</span>
+    <span class="s0">onDismiss: </span><span class="s1">() -&gt; </span><span class="s0">Unit</span><span class="s1">,</span>
+    <span class="s0">onConfirm: </span><span class="s1">(</span><span class="s0">LocalDate</span><span class="s1">, </span><span class="s0">LocalDate</span><span class="s1">, </span><span class="s0">Int</span><span class="s1">, </span><span class="s0">Int</span><span class="s1">, </span><span class="s0">Boolean</span><span class="s1">) -&gt; </span><span class="s0">Unit</span>
+<span class="s1">) {</span>
+    <span class="s2">var </span><span class="s0">newStartDate by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s0">shift</span><span class="s1">.</span><span class="s0">start</span><span class="s1">) }</span>
+    <span class="s2">var </span><span class="s0">newEndDate by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s0">shift</span><span class="s1">.</span><span class="s0">end</span><span class="s1">) }</span>
+
+    <span class="s2">var </span><span class="s0">workText by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">((</span><span class="s0">shift</span><span class="s1">.</span><span class="s0">end</span><span class="s1">.</span><span class="s0">toEpochDay</span><span class="s1">() - </span><span class="s0">shift</span><span class="s1">.</span><span class="s0">start</span><span class="s1">.</span><span class="s0">toEpochDay</span><span class="s1">() + </span><span class="s3">1</span><span class="s1">).</span><span class="s0">toString</span><span class="s1">()) }</span>
+    <span class="s2">var </span><span class="s0">restText by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s0">defaultRestDays</span><span class="s1">.</span><span class="s0">toString</span><span class="s1">()) }</span>
+
+    <span class="s2">var </span><span class="s0">showModeSelection by remember </span><span class="s1">{ </span><span class="s0">mutableStateOf</span><span class="s1">(</span><span class="s2">false</span><span class="s1">) }</span>
+    <span class="s2">val </span><span class="s0">fmt </span><span class="s1">= </span><span class="s0">DateTimeFormatter</span><span class="s1">.</span><span class="s0">ofPattern</span><span class="s1">(</span><span class="s4">&quot;dd.MM.yyyy&quot;</span><span class="s1">)</span>
+
+    <span class="s2">fun </span><span class="s0">updateEndDateFromWork</span><span class="s1">() {</span>
+        <span class="s2">val </span><span class="s0">w </span><span class="s1">= </span><span class="s0">workText</span><span class="s1">.</span><span class="s0">toIntOrNull</span><span class="s1">() </span><span class="s0">?: </span><span class="s2">return</span>
+        <span class="s2">if </span><span class="s1">(</span><span class="s0">w </span><span class="s1">&gt; </span><span class="s3">0</span><span class="s1">) {</span>
+            <span class="s0">newEndDate </span><span class="s1">= </span><span class="s0">newStartDate</span><span class="s1">.</span><span class="s0">plusDays</span><span class="s1">(</span><span class="s0">w</span><span class="s1">.</span><span class="s0">toLong</span><span class="s1">() - </span><span class="s3">1</span><span class="s1">)</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+
+    <span class="s2">fun </span><span class="s0">updateWorkFromEndDate</span><span class="s1">() {</span>
+        <span class="s2">val </span><span class="s0">diff </span><span class="s1">= </span><span class="s0">java</span><span class="s1">.</span><span class="s0">time</span><span class="s1">.</span><span class="s0">temporal</span><span class="s1">.</span><span class="s0">ChronoUnit</span><span class="s1">.</span><span class="s0">DAYS</span><span class="s1">.</span><span class="s0">between</span><span class="s1">(</span><span class="s0">newStartDate</span><span class="s1">, </span><span class="s0">newEndDate</span><span class="s1">) + </span><span class="s3">1</span>
+        <span class="s2">if </span><span class="s1">(</span><span class="s0">diff </span><span class="s1">&gt; </span><span class="s3">0</span><span class="s1">) {</span>
+            <span class="s0">workText </span><span class="s1">= </span><span class="s0">diff</span><span class="s1">.</span><span class="s0">toString</span><span class="s1">()</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+
+    <span class="s2">if </span><span class="s1">(!</span><span class="s0">showModeSelection</span><span class="s1">) {</span>
+        <span class="s0">AlertDialog</span><span class="s1">(</span>
+            <span class="s0">onDismissRequest </span><span class="s1">= </span><span class="s0">onDismiss</span><span class="s1">,</span>
+            <span class="s0">title </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Изменить вахту&quot;</span><span class="s1">) },</span>
+            <span class="s0">text </span><span class="s1">= {</span>
+                <span class="s0">Column </span><span class="s1">{</span>
+                    <span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Было: </span><span class="s2">${</span><span class="s0">shift</span><span class="s1">.</span><span class="s0">start</span><span class="s1">.</span><span class="s0">format</span><span class="s1">(</span><span class="s0">fmt</span><span class="s1">)</span><span class="s2">} </span><span class="s4">— </span><span class="s2">${</span><span class="s0">shift</span><span class="s1">.</span><span class="s0">end</span><span class="s1">.</span><span class="s0">format</span><span class="s1">(</span><span class="s0">fmt</span><span class="s1">)</span><span class="s2">}</span><span class="s4">&quot;</span><span class="s1">, </span><span class="s0">fontSize </span><span class="s1">= </span><span class="s3">13</span><span class="s1">.</span><span class="s0">sp</span><span class="s1">, </span><span class="s0">color </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">onSurfaceVariant</span><span class="s1">)</span>
+                    <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">12</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+
+                    <span class="s0">DateField</span><span class="s1">(</span>
+                        <span class="s0">label </span><span class="s1">= </span><span class="s4">&quot;Новая дата начала&quot;</span><span class="s1">,</span>
+                        <span class="s0">date </span><span class="s1">= </span><span class="s0">newStartDate</span><span class="s1">,</span>
+                        <span class="s0">onDateChange </span><span class="s1">= {</span>
+                            <span class="s0">newStartDate </span><span class="s1">= </span><span class="s0">it</span>
+                            <span class="s0">updateEndDateFromWork</span><span class="s1">()</span>
+                        <span class="s1">}</span>
+                    <span class="s1">)</span>
+                    <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">8</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+
+                    <span class="s0">DateField</span><span class="s1">(</span>
+                        <span class="s0">label </span><span class="s1">= </span><span class="s4">&quot;Новая дата конца&quot;</span><span class="s1">,</span>
+                        <span class="s0">date </span><span class="s1">= </span><span class="s0">newEndDate</span><span class="s1">,</span>
+                        <span class="s0">onDateChange </span><span class="s1">= {</span>
+                            <span class="s0">newEndDate </span><span class="s1">= </span><span class="s0">it</span>
+                            <span class="s0">updateWorkFromEndDate</span><span class="s1">()</span>
+                        <span class="s1">}</span>
+                    <span class="s1">)</span>
+                    <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">8</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+
+                    <span class="s0">OutlinedTextField</span><span class="s1">(</span>
+                        <span class="s0">value </span><span class="s1">= </span><span class="s0">workText</span><span class="s1">,</span>
+                        <span class="s0">onValueChange </span><span class="s1">= {</span>
+                            <span class="s0">workText </span><span class="s1">= </span><span class="s0">it</span><span class="s1">.</span><span class="s0">filter </span><span class="s1">{ </span><span class="s0">c </span><span class="s1">-&gt; </span><span class="s0">c</span><span class="s1">.</span><span class="s0">isDigit</span><span class="s1">() }</span>
+                            <span class="s0">updateEndDateFromWork</span><span class="s1">()</span>
+                        <span class="s1">},</span>
+                        <span class="s0">label </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Рабочих дней&quot;</span><span class="s1">) },</span>
+                        <span class="s0">keyboardOptions </span><span class="s1">= </span><span class="s0">KeyboardOptions</span><span class="s1">(</span><span class="s0">keyboardType </span><span class="s1">= </span><span class="s0">KeyboardType</span><span class="s1">.</span><span class="s0">Number</span><span class="s1">),</span>
+                        <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">()</span>
+                    <span class="s1">)</span>
+                    <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">8</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+                    <span class="s0">OutlinedTextField</span><span class="s1">(</span>
+                        <span class="s0">value </span><span class="s1">= </span><span class="s0">restText</span><span class="s1">,</span>
+                        <span class="s0">onValueChange </span><span class="s1">= { </span><span class="s0">restText </span><span class="s1">= </span><span class="s0">it</span><span class="s1">.</span><span class="s0">filter </span><span class="s1">{ </span><span class="s0">c </span><span class="s1">-&gt; </span><span class="s0">c</span><span class="s1">.</span><span class="s0">isDigit</span><span class="s1">() } },</span>
+                        <span class="s0">label </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Дней отдыха&quot;</span><span class="s1">) },</span>
+                        <span class="s0">keyboardOptions </span><span class="s1">= </span><span class="s0">KeyboardOptions</span><span class="s1">(</span><span class="s0">keyboardType </span><span class="s1">= </span><span class="s0">KeyboardType</span><span class="s1">.</span><span class="s0">Number</span><span class="s1">),</span>
+                        <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">()</span>
+                    <span class="s1">)</span>
+                <span class="s1">}</span>
+            <span class="s1">},</span>
+            <span class="s0">confirmButton </span><span class="s1">= {</span>
+                <span class="s0">TextButton</span><span class="s1">(</span><span class="s0">onClick </span><span class="s1">= {</span>
+                    <span class="s2">val </span><span class="s0">work </span><span class="s1">= </span><span class="s0">workText</span><span class="s1">.</span><span class="s0">toIntOrNull</span><span class="s1">() </span><span class="s0">?: </span><span class="s2">return</span><span class="s0">@TextButton</span>
+                    <span class="s2">val </span><span class="s0">rest </span><span class="s1">= </span><span class="s0">restText</span><span class="s1">.</span><span class="s0">toIntOrNull</span><span class="s1">() </span><span class="s0">?: </span><span class="s2">return</span><span class="s0">@TextButton</span>
+                    <span class="s2">if </span><span class="s1">(</span><span class="s0">work </span><span class="s1">&lt;= </span><span class="s3">0</span><span class="s1">) </span><span class="s2">return</span><span class="s0">@TextButton</span>
+                    <span class="s0">showModeSelection </span><span class="s1">= </span><span class="s2">true</span>
+                <span class="s1">}) { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Далее&quot;</span><span class="s1">) }</span>
+            <span class="s1">},</span>
+            <span class="s0">dismissButton </span><span class="s1">= { </span><span class="s0">TextButton</span><span class="s1">(</span><span class="s0">onClick </span><span class="s1">= </span><span class="s0">onDismiss</span><span class="s1">) { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Отмена&quot;</span><span class="s1">) } }</span>
+        <span class="s1">)</span>
+    <span class="s1">} </span><span class="s2">else </span><span class="s1">{</span>
+        <span class="s2">val </span><span class="s0">work </span><span class="s1">= </span><span class="s0">workText</span><span class="s1">.</span><span class="s0">toIntOrNull</span><span class="s1">() </span><span class="s0">?: </span><span class="s3">0</span>
+        <span class="s2">val </span><span class="s0">rest </span><span class="s1">= </span><span class="s0">restText</span><span class="s1">.</span><span class="s0">toIntOrNull</span><span class="s1">() </span><span class="s0">?: </span><span class="s3">0</span>
+
+        <span class="s0">AlertDialog</span><span class="s1">(</span>
+            <span class="s0">onDismissRequest </span><span class="s1">= { </span><span class="s0">showModeSelection </span><span class="s1">= </span><span class="s2">false </span><span class="s1">},</span>
+            <span class="s0">title </span><span class="s1">= { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Как считать график после?&quot;</span><span class="s1">) },</span>
+            <span class="s0">text </span><span class="s1">= {</span>
+                <span class="s0">Column </span><span class="s1">{</span>
+                    <span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Изменения вступают в силу с </span><span class="s2">${</span><span class="s0">newStartDate</span><span class="s1">.</span><span class="s0">format</span><span class="s1">(</span><span class="s0">fmt</span><span class="s1">)</span><span class="s2">}</span><span class="s4">.&quot;</span><span class="s1">, </span><span class="s0">fontSize </span><span class="s1">= </span><span class="s3">13</span><span class="s1">.</span><span class="s0">sp</span><span class="s1">)</span>
+                    <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">12</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+
+                    <span class="s0">Button</span><span class="s1">(</span>
+                        <span class="s0">onClick </span><span class="s1">= { </span><span class="s0">onConfirm</span><span class="s1">(</span><span class="s0">shift</span><span class="s1">.</span><span class="s0">start</span><span class="s1">, </span><span class="s0">newStartDate</span><span class="s1">, </span><span class="s0">work</span><span class="s1">, </span><span class="s0">rest</span><span class="s1">, </span><span class="s2">true</span><span class="s1">) },</span>
+                        <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">()</span>
+                    <span class="s1">) {</span>
+                        <span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Сдвинуть весь график&quot;</span><span class="s1">)</span>
+                    <span class="s1">}</span>
+                    <span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Эта и все последующие вахты сдвинутся. Следующая начнется через </span><span class="s2">$</span><span class="s0">rest </span><span class="s4">дней отдыха после этой.&quot;</span><span class="s1">, </span><span class="s0">fontSize </span><span class="s1">= </span><span class="s3">11</span><span class="s1">.</span><span class="s0">sp</span><span class="s1">, </span><span class="s0">color </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">onSurfaceVariant</span><span class="s1">)</span>
+
+                    <span class="s0">Spacer</span><span class="s1">(</span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">height</span><span class="s1">(</span><span class="s3">16</span><span class="s1">.</span><span class="s0">dp</span><span class="s1">))</span>
+
+                    <span class="s0">Button</span><span class="s1">(</span>
+                        <span class="s0">onClick </span><span class="s1">= { </span><span class="s0">onConfirm</span><span class="s1">(</span><span class="s0">shift</span><span class="s1">.</span><span class="s0">start</span><span class="s1">, </span><span class="s0">newStartDate</span><span class="s1">, </span><span class="s0">work</span><span class="s1">, </span><span class="s0">rest</span><span class="s1">, </span><span class="s2">false</span><span class="s1">) },</span>
+                        <span class="s0">modifier </span><span class="s1">= </span><span class="s0">Modifier</span><span class="s1">.</span><span class="s0">fillMaxWidth</span><span class="s1">()</span>
+                    <span class="s1">) {</span>
+                        <span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Сохранить старый ритм&quot;</span><span class="s1">)</span>
+                    <span class="s1">}</span>
+                    <span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Изменится только эта вахта. Следующая начнется в тот же день, что и по базовому графику.&quot;</span><span class="s1">, </span><span class="s0">fontSize </span><span class="s1">= </span><span class="s3">11</span><span class="s1">.</span><span class="s0">sp</span><span class="s1">, </span><span class="s0">color </span><span class="s1">= </span><span class="s0">MaterialTheme</span><span class="s1">.</span><span class="s0">colorScheme</span><span class="s1">.</span><span class="s0">onSurfaceVariant</span><span class="s1">)</span>
+                <span class="s1">}</span>
+            <span class="s1">},</span>
+            <span class="s0">confirmButton </span><span class="s1">= { },</span>
+            <span class="s0">dismissButton </span><span class="s1">= { </span><span class="s0">TextButton</span><span class="s1">(</span><span class="s0">onClick </span><span class="s1">= { </span><span class="s0">showModeSelection </span><span class="s1">= </span><span class="s2">false </span><span class="s1">}) { </span><span class="s0">Text</span><span class="s1">(</span><span class="s4">&quot;Назад&quot;</span><span class="s1">) } }</span>
+        <span class="s1">)</span>
+    <span class="s1">}</span>
+<span class="s1">}</span></pre>
+</body>
+</html>

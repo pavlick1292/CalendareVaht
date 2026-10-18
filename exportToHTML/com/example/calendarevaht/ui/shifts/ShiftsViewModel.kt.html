@@ -1,0 +1,161 @@
+<html>
+<head>
+<title>ShiftsViewModel.kt</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #7a7e85;}
+.s4 { color: #2aacb8;}
+.s5 { color: #6aab73;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+ShiftsViewModel.kt</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span><span class="s1">com</span><span class="s2">.</span><span class="s1">example</span><span class="s2">.</span><span class="s1">calendarevaht</span><span class="s2">.</span><span class="s1">ui</span><span class="s2">.</span><span class="s1">shifts</span>
+
+<span class="s1">import android</span><span class="s2">.</span><span class="s1">app</span><span class="s2">.</span><span class="s1">Application</span>
+<span class="s1">import androidx</span><span class="s2">.</span><span class="s1">lifecycle</span><span class="s2">.</span><span class="s1">AndroidViewModel</span>
+<span class="s1">import androidx</span><span class="s2">.</span><span class="s1">lifecycle</span><span class="s2">.</span><span class="s1">viewModelScope</span>
+<span class="s1">import com</span><span class="s2">.</span><span class="s1">example</span><span class="s2">.</span><span class="s1">calendarevaht</span><span class="s2">.</span><span class="s1">data</span><span class="s2">.</span><span class="s1">ShiftPreferences</span>
+<span class="s1">import com</span><span class="s2">.</span><span class="s1">example</span><span class="s2">.</span><span class="s1">calendarevaht</span><span class="s2">.</span><span class="s1">domain</span><span class="s2">.</span><span class="s1">CycleRule</span>
+<span class="s1">import com</span><span class="s2">.</span><span class="s1">example</span><span class="s2">.</span><span class="s1">calendarevaht</span><span class="s2">.</span><span class="s1">domain</span><span class="s2">.</span><span class="s1">CycleTemplate</span>
+<span class="s1">import com</span><span class="s2">.</span><span class="s1">example</span><span class="s2">.</span><span class="s1">calendarevaht</span><span class="s2">.</span><span class="s1">domain</span><span class="s2">.</span><span class="s1">ShiftOverride</span>
+<span class="s1">import kotlinx</span><span class="s2">.</span><span class="s1">coroutines</span><span class="s2">.</span><span class="s1">flow</span><span class="s2">.</span><span class="s1">MutableStateFlow</span>
+<span class="s1">import kotlinx</span><span class="s2">.</span><span class="s1">coroutines</span><span class="s2">.</span><span class="s1">flow</span><span class="s2">.</span><span class="s1">SharingStarted</span>
+<span class="s1">import kotlinx</span><span class="s2">.</span><span class="s1">coroutines</span><span class="s2">.</span><span class="s1">flow</span><span class="s2">.</span><span class="s1">StateFlow</span>
+<span class="s1">import kotlinx</span><span class="s2">.</span><span class="s1">coroutines</span><span class="s2">.</span><span class="s1">flow</span><span class="s2">.</span><span class="s1">combine</span>
+<span class="s1">import kotlinx</span><span class="s2">.</span><span class="s1">coroutines</span><span class="s2">.</span><span class="s1">flow</span><span class="s2">.</span><span class="s1">first</span>
+<span class="s1">import kotlinx</span><span class="s2">.</span><span class="s1">coroutines</span><span class="s2">.</span><span class="s1">flow</span><span class="s2">.</span><span class="s1">stateIn</span>
+<span class="s1">import kotlinx</span><span class="s2">.</span><span class="s1">coroutines</span><span class="s2">.</span><span class="s1">launch</span>
+<span class="s1">import java</span><span class="s2">.</span><span class="s1">time</span><span class="s2">.</span><span class="s1">LocalDate</span>
+
+<span class="s0">class </span><span class="s1">ShiftsViewModel</span><span class="s2">(</span><span class="s1">app: Application</span><span class="s2">) </span><span class="s1">: AndroidViewModel</span><span class="s2">(</span><span class="s1">app</span><span class="s2">) {</span>
+    <span class="s1">private </span><span class="s0">val </span><span class="s1">prefs </span><span class="s2">= </span><span class="s1">ShiftPreferences</span><span class="s2">(</span><span class="s1">app</span><span class="s2">)</span>
+    <span class="s1">private </span><span class="s0">val </span><span class="s1">_localTemplates </span><span class="s2">= </span><span class="s1">MutableStateFlow</span><span class="s2">&lt;</span><span class="s1">List</span><span class="s2">&lt;</span><span class="s1">CycleTemplate</span><span class="s2">&gt;</span><span class="s1">?</span><span class="s2">&gt;(</span><span class="s0">null</span><span class="s2">)</span>
+
+    <span class="s3">// Состояние горизонта (по умолчанию 6 месяцев)</span>
+    <span class="s1">private </span><span class="s0">val </span><span class="s1">_forecastMonths </span><span class="s2">= </span><span class="s1">MutableStateFlow</span><span class="s2">(</span><span class="s4">6</span><span class="s2">)</span>
+    <span class="s0">val </span><span class="s1">forecastMonths: StateFlow</span><span class="s2">&lt;</span><span class="s1">Int</span><span class="s2">&gt; = </span><span class="s1">_forecastMonths</span>
+
+    <span class="s0">val </span><span class="s1">templates </span><span class="s2">= </span><span class="s1">combine</span><span class="s2">(</span><span class="s1">prefs</span><span class="s2">.</span><span class="s1">templates</span><span class="s2">, </span><span class="s1">_localTemplates</span><span class="s2">) { </span><span class="s1">dataStoreList</span><span class="s2">, </span><span class="s1">localList </span><span class="s2">-&gt;</span>
+        <span class="s1">localList ?: dataStoreList</span>
+    <span class="s2">}.</span><span class="s1">stateIn</span><span class="s2">(</span>
+        <span class="s1">scope </span><span class="s2">= </span><span class="s1">viewModelScope</span><span class="s2">,</span>
+        <span class="s1">started </span><span class="s2">= </span><span class="s1">SharingStarted</span><span class="s2">.</span><span class="s1">WhileSubscribed</span><span class="s2">(</span><span class="s4">5000</span><span class="s2">),</span>
+        <span class="s1">initialValue </span><span class="s2">= </span><span class="s1">emptyList</span><span class="s2">()</span>
+    <span class="s2">)</span>
+
+    <span class="s1">init </span><span class="s2">{</span>
+        <span class="s1">viewModelScope</span><span class="s2">.</span><span class="s1">launch </span><span class="s2">{</span>
+            <span class="s0">val </span><span class="s1">current </span><span class="s2">= </span><span class="s1">prefs</span><span class="s2">.</span><span class="s1">templates</span><span class="s2">.</span><span class="s1">first</span><span class="s2">()</span>
+            <span class="s0">if </span><span class="s2">(</span><span class="s1">current</span><span class="s2">.</span><span class="s1">isEmpty</span><span class="s2">()) {</span>
+                <span class="s1">seedTestData</span><span class="s2">()</span>
+            <span class="s2">}</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s0">fun </span><span class="s1">setForecastMonths</span><span class="s2">(</span><span class="s1">months: Int</span><span class="s2">) {</span>
+        <span class="s1">_forecastMonths</span><span class="s2">.</span><span class="s1">value </span><span class="s2">= </span><span class="s1">months</span><span class="s2">.</span><span class="s1">coerceIn</span><span class="s2">(</span><span class="s4">3</span><span class="s2">, </span><span class="s4">36</span><span class="s2">) </span><span class="s3">// Ограничиваем от 3 мес до 3 лет</span>
+    <span class="s2">}</span>
+
+    <span class="s1">private </span><span class="s0">fun </span><span class="s1">seedTestData</span><span class="s2">() {</span>
+        <span class="s1">viewModelScope</span><span class="s2">.</span><span class="s1">launch </span><span class="s2">{</span>
+            <span class="s0">val </span><span class="s1">myShift </span><span class="s2">= </span><span class="s1">CycleTemplate</span><span class="s2">(</span>
+                <span class="s1">id </span><span class="s2">= </span><span class="s4">1L</span><span class="s2">,</span>
+                <span class="s1">initialRule </span><span class="s2">= </span><span class="s1">CycleRule</span><span class="s2">(</span><span class="s1">workDays </span><span class="s2">= </span><span class="s4">23</span><span class="s2">, </span><span class="s1">restDays </span><span class="s2">= </span><span class="s4">19</span><span class="s2">),</span>
+                <span class="s1">startDate </span><span class="s2">= </span><span class="s1">LocalDate</span><span class="s2">.</span><span class="s1">of</span><span class="s2">(</span><span class="s4">2026</span><span class="s2">, </span><span class="s4">10</span><span class="s2">, </span><span class="s4">14</span><span class="s2">),</span>
+                <span class="s1">endDate </span><span class="s2">= </span><span class="s0">null</span><span class="s2">,</span>
+                <span class="s1">isOneTime </span><span class="s2">= </span><span class="s0">false</span><span class="s2">,</span>
+                <span class="s1">baseColor </span><span class="s2">= </span><span class="s4">0xFF4CAF50</span><span class="s2">,</span>
+                <span class="s1">overrides </span><span class="s2">= </span><span class="s1">emptyList</span><span class="s2">(),</span>
+                <span class="s1">countBackward </span><span class="s2">= </span><span class="s0">false</span><span class="s2">, </span><span class="s3">// Отключили</span>
+                <span class="s1">backwardLimitMonths </span><span class="s2">= </span><span class="s4">0</span><span class="s2">,</span>
+                <span class="s1">isMine </span><span class="s2">= </span><span class="s0">true</span><span class="s2">,</span>
+                <span class="s1">customName </span><span class="s2">= </span><span class="s5">&quot;Мой состав&quot;</span>
+            <span class="s2">)</span>
+
+            <span class="s0">val </span><span class="s1">otherShift </span><span class="s2">= </span><span class="s1">CycleTemplate</span><span class="s2">(</span>
+                <span class="s1">id </span><span class="s2">= </span><span class="s4">2L</span><span class="s2">,</span>
+                <span class="s1">initialRule </span><span class="s2">= </span><span class="s1">CycleRule</span><span class="s2">(</span><span class="s1">workDays </span><span class="s2">= </span><span class="s4">23</span><span class="s2">, </span><span class="s1">restDays </span><span class="s2">= </span><span class="s4">19</span><span class="s2">),</span>
+                <span class="s1">startDate </span><span class="s2">= </span><span class="s1">LocalDate</span><span class="s2">.</span><span class="s1">of</span><span class="s2">(</span><span class="s4">2026</span><span class="s2">, </span><span class="s4">9</span><span class="s2">, </span><span class="s4">23</span><span class="s2">),</span>
+                <span class="s1">endDate </span><span class="s2">= </span><span class="s0">null</span><span class="s2">,</span>
+                <span class="s1">isOneTime </span><span class="s2">= </span><span class="s0">false</span><span class="s2">,</span>
+                <span class="s1">baseColor </span><span class="s2">= </span><span class="s4">0xFFFF9800</span><span class="s2">,</span>
+                <span class="s1">overrides </span><span class="s2">= </span><span class="s1">emptyList</span><span class="s2">(),</span>
+                <span class="s1">countBackward </span><span class="s2">= </span><span class="s0">false</span><span class="s2">, </span><span class="s3">// Отключили</span>
+                <span class="s1">backwardLimitMonths </span><span class="s2">= </span><span class="s4">0</span><span class="s2">,</span>
+                <span class="s1">isMine </span><span class="s2">= </span><span class="s0">false</span><span class="s2">,</span>
+                <span class="s1">customName </span><span class="s2">= </span><span class="s5">&quot;Сменщик&quot;</span>
+            <span class="s2">)</span>
+
+            <span class="s1">saveAndSync</span><span class="s2">(</span><span class="s1">listOf</span><span class="s2">(</span><span class="s1">myShift</span><span class="s2">, </span><span class="s1">otherShift</span><span class="s2">))</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s1">private suspend </span><span class="s0">fun </span><span class="s1">saveAndSync</span><span class="s2">(</span><span class="s1">list: List</span><span class="s2">&lt;</span><span class="s1">CycleTemplate</span><span class="s2">&gt;) {</span>
+        <span class="s1">_localTemplates</span><span class="s2">.</span><span class="s1">value </span><span class="s2">= </span><span class="s1">list</span>
+        <span class="s1">prefs</span><span class="s2">.</span><span class="s1">save</span><span class="s2">(</span><span class="s1">list</span><span class="s2">)</span>
+    <span class="s2">}</span>
+
+    <span class="s0">fun </span><span class="s1">add</span><span class="s2">(</span><span class="s1">template: CycleTemplate</span><span class="s2">) {</span>
+        <span class="s1">viewModelScope</span><span class="s2">.</span><span class="s1">launch </span><span class="s2">{</span>
+            <span class="s0">val </span><span class="s1">current </span><span class="s2">= </span><span class="s1">templates</span><span class="s2">.</span><span class="s1">value</span>
+            <span class="s0">val </span><span class="s1">newItem </span><span class="s2">= </span><span class="s1">template</span><span class="s2">.</span><span class="s1">copy</span><span class="s2">(</span><span class="s1">id </span><span class="s2">= </span><span class="s1">nextId</span><span class="s2">(</span><span class="s1">current</span><span class="s2">))</span>
+            <span class="s0">val </span><span class="s1">updated </span><span class="s2">= </span><span class="s0">if </span><span class="s2">(</span><span class="s1">newItem</span><span class="s2">.</span><span class="s1">isMine</span><span class="s2">) {</span>
+                <span class="s1">current</span><span class="s2">.</span><span class="s1">map </span><span class="s2">{ </span><span class="s1">it</span><span class="s2">.</span><span class="s1">copy</span><span class="s2">(</span><span class="s1">isMine </span><span class="s2">= </span><span class="s0">false</span><span class="s2">) } + </span><span class="s1">newItem</span>
+            <span class="s2">} </span><span class="s0">else </span><span class="s2">{</span>
+                <span class="s1">current </span><span class="s2">+ </span><span class="s1">newItem</span>
+            <span class="s2">}</span>
+            <span class="s1">saveAndSync</span><span class="s2">(</span><span class="s1">updated</span><span class="s2">)</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s0">fun </span><span class="s1">update</span><span class="s2">(</span><span class="s1">template: CycleTemplate</span><span class="s2">) {</span>
+        <span class="s1">viewModelScope</span><span class="s2">.</span><span class="s1">launch </span><span class="s2">{</span>
+            <span class="s0">val </span><span class="s1">updated </span><span class="s2">= </span><span class="s1">templates</span><span class="s2">.</span><span class="s1">value</span><span class="s2">.</span><span class="s1">map </span><span class="s2">{ </span><span class="s1">t </span><span class="s2">-&gt;</span>
+                <span class="s0">when </span><span class="s2">{</span>
+                    <span class="s1">t</span><span class="s2">.</span><span class="s1">id </span><span class="s2">== </span><span class="s1">template</span><span class="s2">.</span><span class="s1">id </span><span class="s2">-&gt; </span><span class="s1">template</span>
+                    <span class="s1">template</span><span class="s2">.</span><span class="s1">isMine </span><span class="s2">-&gt; </span><span class="s1">t</span><span class="s2">.</span><span class="s1">copy</span><span class="s2">(</span><span class="s1">isMine </span><span class="s2">= </span><span class="s0">false</span><span class="s2">)</span>
+                    <span class="s0">else </span><span class="s2">-&gt; </span><span class="s1">t</span>
+                <span class="s2">}</span>
+            <span class="s2">}</span>
+            <span class="s0">val </span><span class="s1">finalList </span><span class="s2">= </span><span class="s0">if </span><span class="s2">(</span><span class="s1">updated</span><span class="s2">.</span><span class="s1">count </span><span class="s2">{ </span><span class="s1">it</span><span class="s2">.</span><span class="s1">isMine </span><span class="s2">} &gt; </span><span class="s4">1</span><span class="s2">) {</span>
+                <span class="s1">updated</span><span class="s2">.</span><span class="s1">map </span><span class="s2">{ </span><span class="s1">t </span><span class="s2">-&gt; </span><span class="s0">if </span><span class="s2">(</span><span class="s1">t</span><span class="s2">.</span><span class="s1">id </span><span class="s2">!= </span><span class="s1">template</span><span class="s2">.</span><span class="s1">id </span><span class="s2">&amp;&amp; </span><span class="s1">t</span><span class="s2">.</span><span class="s1">isMine</span><span class="s2">) </span><span class="s1">t</span><span class="s2">.</span><span class="s1">copy</span><span class="s2">(</span><span class="s1">isMine </span><span class="s2">= </span><span class="s0">false</span><span class="s2">) </span><span class="s0">else </span><span class="s1">t </span><span class="s2">}</span>
+            <span class="s2">} </span><span class="s0">else </span><span class="s1">updated</span>
+            <span class="s1">saveAndSync</span><span class="s2">(</span><span class="s1">finalList</span><span class="s2">)</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s0">fun </span><span class="s1">remove</span><span class="s2">(</span><span class="s1">id: Long</span><span class="s2">) {</span>
+        <span class="s1">viewModelScope</span><span class="s2">.</span><span class="s1">launch </span><span class="s2">{</span>
+            <span class="s1">saveAndSync</span><span class="s2">(</span><span class="s1">templates</span><span class="s2">.</span><span class="s1">value</span><span class="s2">.</span><span class="s1">filterNot </span><span class="s2">{ </span><span class="s1">it</span><span class="s2">.</span><span class="s1">id </span><span class="s2">== </span><span class="s1">id </span><span class="s2">})</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s0">fun </span><span class="s1">setMine</span><span class="s2">(</span><span class="s1">id: Long</span><span class="s2">) {</span>
+        <span class="s1">viewModelScope</span><span class="s2">.</span><span class="s1">launch </span><span class="s2">{</span>
+            <span class="s1">saveAndSync</span><span class="s2">(</span><span class="s1">templates</span><span class="s2">.</span><span class="s1">value</span><span class="s2">.</span><span class="s1">map </span><span class="s2">{ </span><span class="s1">it</span><span class="s2">.</span><span class="s1">copy</span><span class="s2">(</span><span class="s1">isMine </span><span class="s2">= </span><span class="s1">it</span><span class="s2">.</span><span class="s1">id </span><span class="s2">== </span><span class="s1">id</span><span class="s2">) })</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s0">fun </span><span class="s1">removeOverride</span><span class="s2">(</span><span class="s1">templateId: Long</span><span class="s2">, </span><span class="s1">originalStart: LocalDate</span><span class="s2">) {</span>
+        <span class="s1">viewModelScope</span><span class="s2">.</span><span class="s1">launch </span><span class="s2">{</span>
+            <span class="s0">val </span><span class="s1">updated </span><span class="s2">= </span><span class="s1">templates</span><span class="s2">.</span><span class="s1">value</span><span class="s2">.</span><span class="s1">map </span><span class="s2">{ </span><span class="s1">t </span><span class="s2">-&gt;</span>
+                <span class="s0">if </span><span class="s2">(</span><span class="s1">t</span><span class="s2">.</span><span class="s1">id </span><span class="s2">!= </span><span class="s1">templateId</span><span class="s2">) </span><span class="s0">return</span><span class="s1">@map t</span>
+                <span class="s1">t</span><span class="s2">.</span><span class="s1">copy</span><span class="s2">(</span><span class="s1">overrides </span><span class="s2">= </span><span class="s1">t</span><span class="s2">.</span><span class="s1">overrides</span><span class="s2">.</span><span class="s1">filterNot </span><span class="s2">{ </span><span class="s1">it</span><span class="s2">.</span><span class="s1">originalStart </span><span class="s2">== </span><span class="s1">originalStart </span><span class="s2">})</span>
+            <span class="s2">}</span>
+            <span class="s1">saveAndSync</span><span class="s2">(</span><span class="s1">updated</span><span class="s2">)</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s1">private </span><span class="s0">fun </span><span class="s1">nextId</span><span class="s2">(</span><span class="s1">list: List</span><span class="s2">&lt;</span><span class="s1">CycleTemplate</span><span class="s2">&gt;)</span><span class="s1">: Long </span><span class="s2">=</span>
+        <span class="s2">(</span><span class="s1">list</span><span class="s2">.</span><span class="s1">maxOfOrNull </span><span class="s2">{ </span><span class="s1">it</span><span class="s2">.</span><span class="s1">id </span><span class="s2">} </span><span class="s1">?: </span><span class="s4">0L</span><span class="s2">) + </span><span class="s4">1L</span>
+<span class="s2">}</span></pre>
+</body>
+</html>
