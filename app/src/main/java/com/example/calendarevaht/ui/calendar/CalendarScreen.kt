@@ -20,19 +20,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -41,8 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.calendarevaht.export.exportCalendarOnly
-import com.example.calendarevaht.export.exportReport
+import com.example.calendarevaht.export.exportCalendar
 import java.time.YearMonth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,6 +59,7 @@ fun CalendarScreen(
 ) {
     val state by vm.state.collectAsState()
     val context = LocalContext.current
+    var showExportDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -151,31 +158,75 @@ fun CalendarScreen(
 
             Spacer(Modifier.height(16.dp))
             Button(
-                onClick = {
-                    exportReport(
-                        context = context,
-                        year = state.year,
-                        templates = state.templates,
-                        holidays = state.holidays,
-                        shiftHours = state.shiftHours
-                    )
-                },
+                onClick = { showExportDialog = true },
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Отчёт с статистикой (PDF)") }
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = {
-                    exportCalendarOnly(
-                        context = context,
-                        year = state.year,
-                        templates = state.templates,
-                        holidays = state.holidays
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Только календарь (PDF)") }
+            ) {
+                Text("Экспорт в PDF")
+            }
         }
     }
+
+    if (showExportDialog) {
+        ExportOptionsDialog(
+            onDismiss = { showExportDialog = false },
+            onExport = { isLandscape, withStats ->
+                showExportDialog = false
+                exportCalendar(
+                    context = context,
+                    year = state.year,
+                    templates = state.templates,
+                    brigades = state.brigades,
+                    persons = state.persons,
+                    holidays = state.holidays,
+                    shiftHours = state.shiftHours,
+                    isLandscape = isLandscape,
+                    withStats = withStats
+                )
+            }
+        )
+    }
+}
+
+@Composable
+private fun ExportOptionsDialog(
+    onDismiss: () -> Unit,
+    onExport: (Boolean, Boolean) -> Unit
+) {
+    var isLandscape by remember { mutableStateOf(true) }
+    var withStats by remember { mutableStateOf(true) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Параметры экспорта") },
+        text = {
+            Column {
+                Text("Ориентация листа:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = isLandscape, onClick = { isLandscape = true })
+                    Text("Альбомная (для печати)")
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = !isLandscape, onClick = { isLandscape = false })
+                    Text("Книжная (для телефона)")
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = withStats, onCheckedChange = { withStats = it })
+                    Text("Добавить страницу со статистикой")
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onExport(isLandscape, withStats) }) {
+                Text("Сформировать")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Отмена") }
+        }
+    )
 }
 
 @Composable

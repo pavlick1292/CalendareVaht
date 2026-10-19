@@ -117,8 +117,8 @@ fun HomeScreen(
     val otherTemplate = templates.firstOrNull { !it.isMine }
     val mineColor = mineTemplate?.baseColor
     val otherColor = otherTemplate?.baseColor
-    val mineLabel = mineTemplate?.customName?.ifBlank { "Мой состав" } ?: "Мой состав"
-    val otherLabel = otherTemplate?.customName?.ifBlank { "Сменщик" } ?: "Сменщик"
+    val mineLabel = mineTemplate?.brigadeName?.ifBlank { "Мой состав" } ?: "Мой состав"
+    val otherLabel = otherTemplate?.brigadeName?.ifBlank { "Сменщик" } ?: "Сменщик"
 
     val overridesHash = remember(templates) {
         templates.fold(0) { acc, t -> 31 * acc + t.overrides.hashCode() }
@@ -467,7 +467,7 @@ private fun upcomingEvents(
     val result = mutableListOf<Event>()
 
     templates.forEach { t ->
-        val shiftName = t.customName.ifBlank { if (t.isMine) "Мой состав" else "Сменщик" }
+        val shiftName = t.brigadeName.ifBlank { if (t.isMine) "Мой состав" else "Сменщик" }
         val entries = CycleCalculator.expandCycleToDays(t, historyStart, horizon)
         val sorted = entries.sortedBy { it.start }
 

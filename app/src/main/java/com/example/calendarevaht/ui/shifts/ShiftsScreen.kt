@@ -2,6 +2,12 @@
 
 package com.example.calendarevaht.ui.shifts
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.with
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -44,6 +51,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -63,9 +72,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.calendarevaht.domain.Brigade
 import com.example.calendarevaht.domain.CycleCalculator
 import com.example.calendarevaht.domain.CycleRule
 import com.example.calendarevaht.domain.CycleTemplate
+import com.example.calendarevaht.domain.Person
 import com.example.calendarevaht.domain.ShiftEntry
 import com.example.calendarevaht.domain.ShiftOverride
 import java.time.Instant
@@ -78,15 +89,25 @@ private val PaletteColors = listOf(
     0xFF9C27B0, 0xFF00BCD4, 0xFFFFC107, 0xFF795548
 )
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun ShiftsScreen(
     vm: ShiftsViewModel = viewModel()
 ) {
     val templates by vm.templates.collectAsState()
+    val brigades by vm.brigades.collectAsState()
+    val persons by vm.persons.collectAsState()
+
     val forecastMonths by vm.forecastMonths.collectAsState()
     var editing by remember { mutableStateOf<CycleTemplate?>(null) }
     var creating by remember { mutableStateOf(false) }
     var showForecastMenu by remember { mutableStateOf(false) }
+
+    var selectedTab by remember { mutableStateOf(0) }
+    var viewingPerson by remember { mutableStateOf<Person?>(null) }
+
+    // Состояние для добавления нового сотрудника
+    var creatingPerson by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -102,11 +123,8 @@ fun ShiftsScreen(
                             onDismissRequest = { showForecastMenu = false }
                         ) {
                             listOf(
-                                3 to "3 месяца",
-                                6 to "6 месяцев",
-                                12 to "1 год",
-                                24 to "2 года",
-                                36 to "3 года"
+                                3 to "3 месяца", 6 to "6 месяцев", 12 to "1 год",
+                                24 to "2 года", 36 to "3 года"
                             ).forEach { (months, label) ->
                                 DropdownMenuItem(
                                     text = { Text(if (forecastMonths == months) "$label (выбрано)" else label) },
@@ -118,61 +136,118 @@ fun ShiftsScreen(
                             }
                         }
                     }
-                    IconButton(onClick = { creating = true }) {
-                        Icon(Icons.Default.Add, contentDescription = "Добавить вахту")
+                    if (selectedTab == 0) {
+                        IconButton(onClick = { creating = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Добавить вахту")
+                        }
+                    } else {
+                        IconButton(onClick = { creatingPerson = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Добавить сотрудника")
+                        }
                     }
                 }
             )
         }
     ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            if (templates.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Вахт пока нет",
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Button(onClick = { creating = true }) {
-                        Text("Добавить первую вахту")
+        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+            TabRow(selectedTabIndex = selectedTab) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = { Text("Вахты") }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = { Text("Сотрудники") }
+                )
+            }
+
+            AnimatedContent(
+                targetState = selectedTab,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(300)) with fadeOut(animationSpec = tween(300))
+                },
+                label = "TabsAnimation"
+            ) { tabIndex ->
+                if (tabIndex == 0) {
+                    // Вкладка "Вахты"
+                    if (templates.isEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text("Вахт пока нет", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(12.dp))
+                            Button(onClick = { creating = true }) { Text("Добавить первую вахту") }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(templates, key = { it.id }) { t ->
+                                TemplateRow(template = t, onClick = { editing = t })
+                            }
+                        }
                     }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(templates, key = { it.id }) { t ->
-                        TemplateRow(
-                            template = t,
-                            onClick = { editing = t }
-                        )
+                } else {
+                    // Вкладка "Сотрудники"
+                    if (persons.isEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text("Сотрудников пока нет", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(12.dp))
+                            Button(onClick = { creatingPerson = true }) { Text("Добавить сотрудника") }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(persons, key = { it.id }) { person ->
+                                val personBrigade = brigades.find { person.id in it.personIds }
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().clickable { viewingPerson = person },
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
+                                            Text(person.fullName.take(1).uppercase(), color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
+                                        }
+                                        Spacer(Modifier.width(12.dp))
+                                        Column {
+                                            Text(person.fullName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                            Text("Должность: ${person.position.ifBlank { "не указана" }}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            if (personBrigade != null) {
+                                                Text("Бригада: ${personBrigade.name}", fontSize = 13.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                                            } else {
+                                                Text("Без бригады", fontSize = 13.sp, color = MaterialTheme.colorScheme.error)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
+    // Диалоги
     if (creating) {
         EditShiftDialog(
             initial = null,
+            brigades = brigades,
             onDismiss = { creating = false },
-            onSave = { t ->
-                vm.add(t)
-                creating = false
-            },
+            onSave = { t -> vm.add(t); creating = false },
             onDelete = null,
             onAddSpecificShiftChange = null
         )
@@ -181,45 +256,172 @@ fun ShiftsScreen(
     editing?.let { template ->
         EditShiftDialog(
             initial = template,
+            brigades = brigades,
             onDismiss = { editing = null },
-            onSave = { t ->
-                vm.update(t)
-                editing = null
-            },
-            onDelete = {
-                vm.remove(template.id)
-                editing = null
-            },
+            onSave = { t -> vm.update(t); editing = null },
+            onDelete = { vm.remove(template.id); editing = null },
             onAddSpecificShiftChange = { originalStart, newStart, work, rest, shiftSubsequent ->
                 val base = vm.templates.value.firstOrNull { it.id == template.id } ?: template
                 val filteredOverrides = base.overrides.filterNot { it.originalStart == originalStart }
-
-                val newOverride = ShiftOverride(
-                    originalStart = originalStart,
-                    newStart = newStart,
-                    workDays = work,
-                    restDays = rest,
-                    shiftSubsequent = shiftSubsequent
-                )
-
-                val updatedTemplate = base.copy(
-                    overrides = (filteredOverrides + newOverride).sortedBy { it.originalStart }
-                )
+                val newOverride = ShiftOverride(originalStart, newStart, work, rest, shiftSubsequent)
+                val updatedTemplate = base.copy(overrides = (filteredOverrides + newOverride).sortedBy { it.originalStart })
                 vm.update(updatedTemplate)
-                // ВАЖНО: присваиваем сконструированный объект, а не читаем .value
                 editing = updatedTemplate
             },
             onRemoveOverride = { originalStart ->
                 val base = vm.templates.value.firstOrNull { it.id == template.id } ?: template
-                val updatedTemplate = base.copy(
-                    overrides = base.overrides.filterNot { it.originalStart == originalStart }
-                )
+                val updatedTemplate = base.copy(overrides = base.overrides.filterNot { it.originalStart == originalStart })
                 vm.update(updatedTemplate)
-                // ВАЖНО: присваиваем сконструированный объект
                 editing = updatedTemplate
             }
         )
     }
+
+    viewingPerson?.let { person ->
+        EditPersonDialog(
+            person = person,
+            brigades = brigades,
+            onDismiss = { viewingPerson = null },
+            onSave = { updatedPerson, newBrigadeId ->
+                vm.updatePerson(updatedPerson)
+                vm.movePersonToBrigade(updatedPerson.id, newBrigadeId)
+                viewingPerson = null
+            }
+        )
+    }
+
+    if (creatingPerson) {
+        AddPersonDialog(
+            onSave = { name, pos ->
+                // По умолчанию добавляем в первую бригаду (если она есть)
+                val defaultBrigadeId = brigades.firstOrNull()?.id ?: 1L
+                vm.addPersonToBrigade(defaultBrigadeId, name, pos)
+                creatingPerson = false
+            },
+            onCancel = { creatingPerson = false }
+        )
+    }
+}
+
+// === ВСПОМОГАТЕЛЬНЫЕ КОМПОНЕНТЫ ===
+
+@Composable
+private fun EditPersonDialog(
+    person: Person,
+    brigades: List<Brigade>,
+    onDismiss: () -> Unit,
+    onSave: (Person, Long?) -> Unit
+) {
+    var name by remember { mutableStateOf(person.fullName) }
+    var position by remember { mutableStateOf(person.position) }
+
+    val currentBrigade = brigades.find { person.id in it.personIds }
+    var selectedBrigadeId by remember { mutableStateOf(currentBrigade?.id) }
+    var expandedMenu by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Редактировать сотрудника") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("ФИО") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = position,
+                    onValueChange = { position = it },
+                    label = { Text("Должность") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = brigades.find { it.id == selectedBrigadeId }?.name ?: "Не выбрана",
+                        onValueChange = { },
+                        label = { Text("Бригада") },
+                        readOnly = true,
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Box(modifier = Modifier.matchParentSize().clickable { expandedMenu = true })
+
+                    DropdownMenu(
+                        expanded = expandedMenu,
+                        onDismissRequest = { expandedMenu = false }
+                    ) {
+                        brigades.forEach { brigade ->
+                            DropdownMenuItem(
+                                text = { Text(brigade.name) },
+                                onClick = {
+                                    selectedBrigadeId = brigade.id
+                                    expandedMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                if (name.isNotBlank()) {
+                    onSave(person.copy(fullName = name, position = position), selectedBrigadeId)
+                }
+            }) { Text("Сохранить") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Отмена") }
+        }
+    )
+}
+
+@Composable
+private fun AddPersonDialog(
+    onSave: (String, String) -> Unit,
+    onCancel: () -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var position by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("Новый сотрудник") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("ФИО") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = position,
+                    onValueChange = { position = it },
+                    label = { Text("Должность") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { if (name.isNotBlank()) onSave(name, position) },
+                enabled = name.isNotBlank()
+            ) { Text("Сохранить") }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) { Text("Отмена") }
+        }
+    )
 }
 
 @Composable
@@ -228,54 +430,23 @@ private fun TemplateRow(
     onClick: () -> Unit
 ) {
     val fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy")
-    val displayName = template.customName.ifBlank {
-        if (template.isMine) "Мой состав" else "Сменщик"
-    }
+    val displayName = template.brigadeName.ifBlank { "Без названия" }
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .clip(CircleShape)
-                    .background(Color(template.baseColor))
-            )
+        Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(Color(template.baseColor)))
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = displayName,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
+                Text(displayName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 if (template.isOneTime) {
-                    Text(
-                        text = "Разовая · ${template.startDate.format(fmt)} — ${template.endDate?.format(fmt) ?: "?"}",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text("Разовая · ${template.startDate.format(fmt)} — ${template.endDate?.format(fmt) ?: "?"}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    Text(
-                        text = "Циклическая · с ${template.startDate.format(fmt)} · ${template.initialRule.workDays}/${template.initialRule.restDays}",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text("Циклическая · с ${template.startDate.format(fmt)} · ${template.initialRule.workDays}/${template.initialRule.restDays}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (template.overrides.isNotEmpty()) {
-                        Text(
-                            text = "измененных вахт: ${template.overrides.size}",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Text("измененных вахт: ${template.overrides.size}", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -302,19 +473,12 @@ private fun DateField(
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clickable { showPicker = true }
-        )
+        Box(modifier = Modifier.matchParentSize().clickable { showPicker = true })
     }
 
     if (showPicker) {
         val state = rememberDatePickerState(
-            initialSelectedDateMillis = date
-                .atStartOfDay(ZoneOffset.UTC)
-                .toInstant()
-                .toEpochMilli()
+            initialSelectedDateMillis = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
         )
         DatePickerDialog(
             onDismissRequest = { showPicker = false },
@@ -322,17 +486,12 @@ private fun DateField(
                 TextButton(onClick = {
                     val millis = state.selectedDateMillis
                     if (millis != null) {
-                        val newDate = Instant.ofEpochMilli(millis)
-                            .atZone(ZoneOffset.UTC)
-                            .toLocalDate()
-                        onDateChange(newDate)
+                        onDateChange(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
                     }
                     showPicker = false
                 }) { Text("ОК") }
             },
-            dismissButton = {
-                TextButton(onClick = { showPicker = false }) { Text("Отмена") }
-            }
+            dismissButton = { TextButton(onClick = { showPicker = false }) { Text("Отмена") } }
         ) {
             DatePicker(state = state)
         }
@@ -340,10 +499,7 @@ private fun DateField(
 }
 
 @Composable
-private fun ColorPicker(
-    selected: Long,
-    onSelect: (Long) -> Unit
-) {
+private fun ColorPicker(selected: Long, onSelect: (Long) -> Unit) {
     Text("Цвет", fontSize = 13.sp, fontWeight = FontWeight.Medium)
     Spacer(Modifier.height(6.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -353,20 +509,12 @@ private fun ColorPicker(
                     .size(32.dp)
                     .clip(CircleShape)
                     .background(Color(c))
-                    .then(
-                        if (c == selected) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                        else Modifier
-                    )
+                    .then(if (c == selected) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
                     .clickable { onSelect(c) },
                 contentAlignment = Alignment.Center
             ) {
                 if (c == selected) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -376,6 +524,7 @@ private fun ColorPicker(
 @Composable
 private fun EditShiftDialog(
     initial: CycleTemplate?,
+    brigades: List<Brigade>,
     onDismiss: () -> Unit,
     onSave: (CycleTemplate) -> Unit,
     onDelete: (() -> Unit)?,
@@ -385,19 +534,15 @@ private fun EditShiftDialog(
     val isEdit = initial != null
     var isOneTime by remember { mutableStateOf(initial?.isOneTime ?: false) }
     var startDate by remember { mutableStateOf(initial?.startDate ?: LocalDate.now()) }
-    var endDate by remember {
-        mutableStateOf(initial?.endDate ?: LocalDate.now().plusDays(14))
-    }
-    var workText by remember {
-        mutableStateOf((initial?.initialRule?.workDays ?: 15).toString())
-    }
-    var restText by remember {
-        mutableStateOf((initial?.initialRule?.restDays ?: 15).toString())
-    }
+    var endDate by remember { mutableStateOf(initial?.endDate ?: LocalDate.now().plusDays(14)) }
+    var workText by remember { mutableStateOf((initial?.initialRule?.workDays ?: 15).toString()) }
+    var restText by remember { mutableStateOf((initial?.initialRule?.restDays ?: 15).toString()) }
     var isMine by remember { mutableStateOf(initial?.isMine ?: false) }
-    var customName by remember { mutableStateOf(initial?.customName ?: "") }
-    var color by remember { mutableStateOf(initial?.baseColor ?: PaletteColors[0]) }
 
+    var selectedBrigade by remember { mutableStateOf(brigades.firstOrNull { it.id == initial?.brigadeId } ?: brigades.firstOrNull()) }
+    var expandedBrigadeMenu by remember { mutableStateOf(false) }
+
+    var color by remember { mutableStateOf(initial?.baseColor ?: PaletteColors[0]) }
     var showShiftSelection by remember { mutableStateOf(false) }
     var selectedShiftToEdit by remember { mutableStateOf<ShiftEntry?>(null) }
 
@@ -408,19 +553,12 @@ private fun EditShiftDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (isEdit) "Редактировать вахту" else "Новая вахта") },
         text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-            ) {
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 if (isEdit && !isOneTime && onAddSpecificShiftChange != null) {
                     Button(
                         onClick = { showShiftSelection = true },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
                     ) {
                         Text("Изменить конкретную вахту")
                     }
@@ -433,45 +571,48 @@ private fun EditShiftDialog(
                     }
                 }
 
-                OutlinedTextField(
-                    value = customName,
-                    onValueChange = { customName = it },
-                    label = { Text("Название состава") },
-                    placeholder = { Text(if (isMine) "Мой состав" else "Сменщик") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = selectedBrigade?.name ?: "Выберите бригаду",
+                        onValueChange = { },
+                        label = { Text("Бригада") },
+                        readOnly = true,
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Box(modifier = Modifier.matchParentSize().clickable { expandedBrigadeMenu = true })
+
+                    DropdownMenu(
+                        expanded = expandedBrigadeMenu,
+                        onDismissRequest = { expandedBrigadeMenu = false }
+                    ) {
+                        brigades.forEach { brigade ->
+                            DropdownMenuItem(
+                                text = { Text(brigade.name) },
+                                onClick = {
+                                    selectedBrigade = brigade
+                                    expandedBrigadeMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
 
                 ColorPicker(selected = color, onSelect = { color = it })
                 Spacer(Modifier.height(8.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = !isOneTime,
-                        onClick = { isOneTime = false },
-                        label = { Text("Циклическая") }
-                    )
-                    FilterChip(
-                        selected = isOneTime,
-                        onClick = { isOneTime = true },
-                        label = { Text("Разовая") }
-                    )
+                    FilterChip(selected = !isOneTime, onClick = { isOneTime = false }, label = { Text("Циклическая") })
+                    FilterChip(selected = isOneTime, onClick = { isOneTime = true }, label = { Text("Разовая") })
                 }
                 Spacer(Modifier.height(8.dp))
-                DateField(
-                    label = "Дата начала",
-                    date = startDate,
-                    onDateChange = { startDate = it }
-                )
+
+                DateField(label = "Дата начала", date = startDate, onDateChange = { startDate = it })
                 Spacer(Modifier.height(8.dp))
 
                 if (isOneTime) {
-                    DateField(
-                        label = "Дата конца",
-                        date = endDate,
-                        onDateChange = { endDate = it }
-                    )
+                    DateField(label = "Дата конца", date = endDate, onDateChange = { endDate = it })
                 } else {
                     OutlinedTextField(
                         value = workText,
@@ -493,41 +634,20 @@ private fun EditShiftDialog(
                     Spacer(Modifier.height(4.dp))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = isMine,
-                            onCheckedChange = { isMine = it }
-                        )
+                        Checkbox(checked = isMine, onCheckedChange = { isMine = it })
                         Text("Это мой состав", fontSize = 13.sp)
                     }
 
                     if (isEdit && currentOverrides.isNotEmpty()) {
                         Spacer(Modifier.height(12.dp))
-                        Text(
-                            text = "Измененные вахты:",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
+                        Text("Измененные вахты:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         currentOverrides.sortedBy { it.originalStart }.forEach { ov ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Было: ${ov.originalStart.format(fmt)}",
-                                        fontSize = 13.sp
-                                    )
-                                    Text(
-                                        text = "Стало: ${ov.newStart.format(fmt)} · ${ov.workDays}/${ov.restDays}",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Text("Было: ${ov.originalStart.format(fmt)}", fontSize = 13.sp)
+                                    Text("Стало: ${ov.newStart.format(fmt)} · ${ov.workDays}/${ov.restDays}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                IconButton(onClick = {
-                                    if (onRemoveOverride != null) {
-                                        onRemoveOverride(ov.originalStart)
-                                    }
-                                }) {
+                                IconButton(onClick = { if (onRemoveOverride != null) onRemoveOverride(ov.originalStart) }) {
                                     Icon(Icons.Default.Close, contentDescription = "Удалить")
                                 }
                             }
@@ -537,58 +657,58 @@ private fun EditShiftDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                val id = initial?.id ?: 0L
-                val newTemplate: CycleTemplate
-                if (isOneTime) {
-                    if (endDate.isBefore(startDate)) return@TextButton
-                    newTemplate = CycleTemplate(
-                        id = id,
-                        initialRule = CycleRule(workDays = 1, restDays = 0),
-                        startDate = startDate,
-                        endDate = endDate,
-                        isOneTime = true,
-                        baseColor = color,
-                        overrides = initial?.overrides ?: emptyList(),
-                        countBackward = false,
-                        backwardLimitMonths = 0,
-                        isMine = isMine,
-                        customName = customName.trim()
-                    )
-                } else {
-                    val work = workText.toIntOrNull() ?: return@TextButton
-                    val rest = restText.toIntOrNull() ?: return@TextButton
-                    if (work <= 0) return@TextButton
-                    newTemplate = CycleTemplate(
-                        id = id,
-                        initialRule = CycleRule(workDays = work, restDays = rest),
-                        startDate = startDate,
-                        endDate = null,
-                        isOneTime = false,
-                        baseColor = color,
-                        overrides = initial?.overrides ?: emptyList(),
-                        countBackward = false,
-                        backwardLimitMonths = 0,
-                        isMine = isMine,
-                        customName = customName.trim()
-                    )
-                }
-                onSave(newTemplate)
-            }) { Text("Сохранить") }
+            TextButton(
+                onClick = {
+                    val id = initial?.id ?: 0L
+                    val newTemplate: CycleTemplate
+                    if (isOneTime) {
+                        if (endDate.isBefore(startDate) || selectedBrigade == null) return@TextButton
+                        newTemplate = CycleTemplate(
+                            id = id,
+                            initialRule = CycleRule(workDays = 1, restDays = 0),
+                            startDate = startDate,
+                            endDate = endDate,
+                            isOneTime = true,
+                            baseColor = color,
+                            overrides = initial?.overrides ?: emptyList(),
+                            countBackward = false,
+                            backwardLimitMonths = 0,
+                            isMine = isMine,
+                            brigadeId = selectedBrigade!!.id,
+                            brigadeName = selectedBrigade!!.name
+                        )
+                    } else {
+                        val work = workText.toIntOrNull() ?: return@TextButton
+                        val rest = restText.toIntOrNull() ?: return@TextButton
+                        if (work <= 0 || selectedBrigade == null) return@TextButton
+                        newTemplate = CycleTemplate(
+                            id = id,
+                            initialRule = CycleRule(workDays = work, restDays = rest),
+                            startDate = startDate,
+                            endDate = null,
+                            isOneTime = false,
+                            baseColor = color,
+                            overrides = initial?.overrides ?: emptyList(),
+                            countBackward = false,
+                            backwardLimitMonths = 0,
+                            isMine = isMine,
+                            brigadeId = selectedBrigade!!.id,
+                            brigadeName = selectedBrigade!!.name
+                        )
+                    }
+                    onSave(newTemplate)
+                },
+                enabled = selectedBrigade != null
+            ) { Text("Сохранить") }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Отмена") }
-        }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
     )
 
     if (showShiftSelection && initial != null && onAddSpecificShiftChange != null) {
         ShiftSelectionDialog(
             template = initial,
             onDismiss = { showShiftSelection = false },
-            onSelect = { shift ->
-                selectedShiftToEdit = shift
-                showShiftSelection = false
-            }
+            onSelect = { shift -> selectedShiftToEdit = shift; showShiftSelection = false }
         )
     }
 

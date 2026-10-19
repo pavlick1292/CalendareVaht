@@ -9,9 +9,10 @@ data class CycleTemplate(
     val endDate: LocalDate?,
     val isOneTime: Boolean,
     val baseColor: Long,
-    val overrides: List<ShiftOverride> = emptyList(), // <-- НОВОЕ ПОЛЕ
+    val overrides: List<ShiftOverride> = emptyList(),
     val countBackward: Boolean = false,
     val backwardLimitMonths: Int = 0,
-    val isMine: Boolean = false,
-    val customName: String = ""
+    val isMine: Boolean,
+    val brigadeId: Long = 0L,
+    val brigadeName: String = "Мой состав" // Снимок названия
 )

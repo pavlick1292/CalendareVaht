@@ -135,8 +135,8 @@ fun SummaryScreen(
 
                     val mineColor = Color(mine.baseColor)
                     val otherColor = other?.let { Color(it.baseColor) }
-                    val mineLabel = mine.customName.ifBlank { "Мой состав" }
-                    val otherLabel = other?.customName?.ifBlank { "Сменщик" } ?: "Сменщик"
+                    val mineLabel = mine.brigadeName.ifBlank { "Мой состав" }
+                    val otherLabel = other?.brigadeName?.ifBlank { "Сменщик" } ?: "Сменщик"
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         LegendItem(mineColor, mineLabel)

@@ -91,8 +91,8 @@ class StatsViewModel(app: Application) : AndroidViewModel(app) {
             val mineTemplate = templates.firstOrNull { it.isMine }
             val otherTemplate = templates.firstOrNull { !it.isMine }
 
-            val mineTitle = mineTemplate?.customName?.ifBlank { "Мой состав" } ?: "Мой состав"
-            val otherTitle = otherTemplate?.customName?.ifBlank { "Сменщик" } ?: "Сменщик"
+            val mineTitle = mineTemplate?.brigadeName?.ifBlank { "Мой состав" } ?: "Мой состав"
+            val otherTitle = otherTemplate?.brigadeName?.ifBlank { "Сменщик" } ?: "Сменщик"
 
             val mine = mineTemplate?.let { buildStats(it, mineTitle, from, to, hoursPerDay, holidays) }
             val other = otherTemplate?.let { buildStats(it, otherTitle, from, to, hoursPerDay, holidays) }

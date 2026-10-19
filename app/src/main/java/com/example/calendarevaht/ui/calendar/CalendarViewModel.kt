@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.calendarevaht.data.HolidayRepository
 import com.example.calendarevaht.data.SettingsPreferences
 import com.example.calendarevaht.data.ShiftPreferences
+import com.example.calendarevaht.domain.Brigade
 import com.example.calendarevaht.domain.CycleCalculator
 import com.example.calendarevaht.domain.CycleTemplate
+import com.example.calendarevaht.domain.Person
 import com.example.calendarevaht.domain.ShiftEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +22,8 @@ import java.time.Year
 data class CalendarUiState(
     val year: Int = Year.now().value,
     val templates: List<CycleTemplate> = emptyList(),
+    val brigades: List<Brigade> = emptyList(),
+    val persons: List<Person> = emptyList(),
     val days: Map<LocalDate, List<ShiftEntry>> = emptyMap(),
     val holidays: Map<LocalDate, String> = emptyMap(),
     val shiftHours: Int = 11
@@ -46,13 +50,12 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     fun reload(year: Int = _state.value.year) {
         viewModelScope.launch {
             val templates = shiftPrefs.templates.first()
+            val brigades = shiftPrefs.brigades.first()
+            val persons = shiftPrefs.persons.first()
             val settings = settingsPrefs.settings.first()
 
-            // Рамки года для отображения
             val from = LocalDate.of(year, 1, 1)
             val to = LocalDate.of(year, 12, 31)
-
-            // Рамки для расчёта (с запасом назад и вперёд, чтобы "назад" отработал)
             val queryFrom = from.minusMonths(13)
             val queryTo = to.plusMonths(1)
 
@@ -61,7 +64,6 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
                 CycleCalculator.expandCycleToDays(t, queryFrom, queryTo).forEach { e ->
                     var d = e.start
                     while (!d.isAfter(e.end)) {
-                        // Оставляем только дни, попадающие в выбранный год
                         if (!d.isBefore(from) && !d.isAfter(to)) {
                             map.getOrPut(d) { mutableListOf() }.add(e)
                         }
@@ -75,6 +77,8 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = CalendarUiState(
                 year = year,
                 templates = templates,
+                brigades = brigades,
+                persons = persons,
                 days = map.mapValues { it.value.toList() },
                 holidays = holidays,
                 shiftHours = settings.shiftHours

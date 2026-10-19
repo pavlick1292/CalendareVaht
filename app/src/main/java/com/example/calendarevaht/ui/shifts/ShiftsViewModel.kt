@@ -4,8 +4,10 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.calendarevaht.data.ShiftPreferences
+import com.example.calendarevaht.domain.Brigade
 import com.example.calendarevaht.domain.CycleRule
 import com.example.calendarevaht.domain.CycleTemplate
+import com.example.calendarevaht.domain.Person
 import com.example.calendarevaht.domain.ShiftOverride
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,10 +22,11 @@ class ShiftsViewModel(app: Application) : AndroidViewModel(app) {
     private val prefs = ShiftPreferences(app)
     private val _localTemplates = MutableStateFlow<List<CycleTemplate>?>(null)
 
-    // Состояние горизонта (по умолчанию 6 месяцев)
+    // Состояние горизонта
     private val _forecastMonths = MutableStateFlow(6)
     val forecastMonths: StateFlow<Int> = _forecastMonths
 
+    // Данные о вахтах
     val templates = combine(prefs.templates, _localTemplates) { dataStoreList, localList ->
         localList ?: dataStoreList
     }.stateIn(
@@ -32,8 +35,13 @@ class ShiftsViewModel(app: Application) : AndroidViewModel(app) {
         initialValue = emptyList()
     )
 
+    // Данные о бригадах и людях (для UI)
+    val brigades = prefs.brigades.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val persons = prefs.persons.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     init {
         viewModelScope.launch {
+            prefs.migrateIfNeeded()
             val current = prefs.templates.first()
             if (current.isEmpty()) {
                 seedTestData()
@@ -42,7 +50,7 @@ class ShiftsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setForecastMonths(months: Int) {
-        _forecastMonths.value = months.coerceIn(3, 36) // Ограничиваем от 3 мес до 3 лет
+        _forecastMonths.value = months.coerceIn(3, 36)
     }
 
     private fun seedTestData() {
@@ -55,10 +63,11 @@ class ShiftsViewModel(app: Application) : AndroidViewModel(app) {
                 isOneTime = false,
                 baseColor = 0xFF4CAF50,
                 overrides = emptyList(),
-                countBackward = false, // Отключили
+                countBackward = false,
                 backwardLimitMonths = 0,
                 isMine = true,
-                customName = "Мой состав"
+                brigadeId = 1L,
+                brigadeName = "Мой состав"
             )
 
             val otherShift = CycleTemplate(
@@ -69,19 +78,54 @@ class ShiftsViewModel(app: Application) : AndroidViewModel(app) {
                 isOneTime = false,
                 baseColor = 0xFFFF9800,
                 overrides = emptyList(),
-                countBackward = false, // Отключили
+                countBackward = false,
                 backwardLimitMonths = 0,
                 isMine = false,
-                customName = "Сменщик"
+                brigadeId = 2L,
+                brigadeName = "Сменщик"
             )
 
+            // Создаем тестовые данные для людей и бригад
+            val personsList = listOf(
+                Person(id = 1L, fullName = "Иванов Иван", position = "Машинист"),
+                Person(id = 2L, fullName = "Петров Петр", position = "Помощник"),
+                Person(id = 3L, fullName = "Сидоров Сидор", position = "Водитель")
+            )
+            val brigadesList = listOf(
+                Brigade(id = 1L, name = "Мой состав", personIds = listOf(1L, 2L)),
+                Brigade(id = 2L, name = "Сменщик", personIds = listOf(3L))
+            )
+
+            savePersonsAndBrigades(personsList, brigadesList)
             saveAndSync(listOf(myShift, otherShift))
         }
     }
 
+    // Сохранение списка вахт
     private suspend fun saveAndSync(list: List<CycleTemplate>) {
         _localTemplates.value = list
-        prefs.save(list)
+        prefs.saveTemplates(list)
+    }
+
+    // Сохранение людей и бригад
+    private suspend fun savePersonsAndBrigades(personsList: List<Person>, brigadesList: List<Brigade>) {
+        prefs.savePersons(personsList)
+        prefs.saveBrigades(brigadesList)
+    }
+
+    // Методы для добавления/обновления людей и бригад (пока используются для тестов)
+    fun addPerson(person: Person) {
+        viewModelScope.launch {
+            val current = persons.value
+            prefs.savePersons(current + person)
+        }
+    }
+
+    fun addBrigade(brigade: Brigade) {
+        viewModelScope.launch {
+            val current = brigades.value
+            prefs.saveBrigades(current + brigade)
+        }
     }
 
     fun add(template: CycleTemplate) {
@@ -137,4 +181,60 @@ class ShiftsViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun nextId(list: List<CycleTemplate>): Long =
         (list.maxOfOrNull { it.id } ?: 0L) + 1L
+    // === ДОБАВЛЕНИЕ И ОБНОВЛЕНИЕ БРИГАД / ЛЮДЕЙ ===
+
+    fun addPersonToBrigade(brigadeId: Long, fullName: String, position: String) {
+        viewModelScope.launch {
+            val currentPersons = persons.value
+            val newId = (currentPersons.maxOfOrNull { it.id } ?: 0L) + 1L
+            val newPerson = Person(id = newId, fullName = fullName, position = position)
+
+            // Сохраняем человека
+            prefs.savePersons(currentPersons + newPerson)
+
+            // Добавляем его ID в бригаду
+            val currentBrigades = brigades.value
+            val updatedBrigades = currentBrigades.map { b ->
+                if (b.id == brigadeId) b.copy(personIds = b.personIds + newId) else b
+            }
+            prefs.saveBrigades(updatedBrigades)
+        }
+    }
+    fun updatePerson(person: Person) {
+        viewModelScope.launch {
+            val currentPersons = persons.value.map { if (it.id == person.id) person else it }
+            prefs.savePersons(currentPersons)
+        }
+    }
+    fun addBrigade(name: String) {
+        viewModelScope.launch {
+            val current = brigades.value
+            val newId = (current.maxOfOrNull { it.id } ?: 0L) + 1L
+            val newBrigade = Brigade(id = newId, name = name, personIds = emptyList())
+            prefs.saveBrigades(current + newBrigade)
+            fun updatePerson(person: Person) {
+                viewModelScope.launch {
+                    val currentPersons = persons.value.map { if (it.id == person.id) person else it }
+                    prefs.savePersons(currentPersons)
+                }
+            }
+
+            fun movePersonToBrigade(personId: Long, newBrigadeId: Long?) {
+                viewModelScope.launch {
+                    val currentBrigades = brigades.value.map { b ->
+                        // Удаляем человека из всех бригад
+                        val updatedIds = b.personIds.filterNot { it == personId }
+                        // Если это та бригада, куда мы переводим — добавляем его
+                        if (b.id == newBrigadeId) {
+                            b.copy(personIds = updatedIds + personId)
+                        } else {
+                            b.copy(personIds = updatedIds)
+                        }
+                    }
+                    prefs.saveBrigades(currentBrigades)
+                }
+            } }
+    }
+
+    fun movePersonToBrigade(id: Long, newBrigadeId: Long?) {}
 }
