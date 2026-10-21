@@ -95,8 +95,8 @@ class StatsViewModel(app: Application) : AndroidViewModel(app) {
                 StatsMode.YEAR -> LocalDate.of(s.year, 1, 1) to LocalDate.of(s.year, 12, 31)
             }
 
-            // Загружаем данные производственного календаря
-            val workDaysMap = workCalendarRepo.getWorkDays()
+            // Загружаем данные производственного календаря и подмешиваем праздники
+            val workDaysMap = mergeKnownHolidays(workCalendarRepo.getWorkDays())
             val monthlyNorms = workCalendarRepo.getMonthlyNorms()
 
             val mineTemplate = templates.firstOrNull { it.isMine }
@@ -119,6 +119,38 @@ class StatsViewModel(app: Application) : AndroidViewModel(app) {
                 monthlyNorms = monthlyNorms
             )
         }
+    }
+
+    // ТА САМАЯ ФУНКЦИЯ ДЛЯ ПРАЗДНИКОВ 2027 ГОДА
+    private fun mergeKnownHolidays(map: Map<LocalDate, WorkDayInfo>): Map<LocalDate, WorkDayInfo> {
+        val result = map.toMutableMap()
+        val holidayDates = listOf(
+            "2027-01-01", "2027-01-02", "2027-01-03", "2027-01-04",
+            "2027-01-05", "2027-01-06", "2027-01-07", "2027-01-08",
+            "2027-02-23", "2027-03-08", "2027-05-01", "2027-05-09",
+            "2027-06-12", "2027-11-04"
+        ).map { LocalDate.parse(it) }
+
+        val names = mapOf(
+            1 to "Новогодние каникулы", 7 to "Рождество Христово",
+            2 to "День защитника Отечества", 3 to "Международный женский день",
+            5 to "Праздник Весны и Труда", 9 to "День Победы",
+            6 to "День России", 11 to "День народного единства"
+        )
+
+        holidayDates.forEach { date ->
+            val existing = result[date]
+            if (existing == null || existing.type != DayType.PUBLIC_HOLIDAY) {
+                result[date] = WorkDayInfo(
+                    date = date,
+                    type = DayType.PUBLIC_HOLIDAY,
+                    isShortened = false,
+                    hours40h = 0.0,
+                    holidayName = names[date.monthValue] ?: "Праздник"
+                )
+            }
+        }
+        return result
     }
 
     private fun buildStats(

@@ -34,32 +34,20 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     private var lastFetchTime = 0L
 
-    private fun mergeKnownHolidays(
-        map: Map<LocalDate, WorkDayInfo>
-    ): Map<LocalDate, WorkDayInfo> {
+    private fun mergeKnownHolidays(map: Map<LocalDate, WorkDayInfo>): Map<LocalDate, WorkDayInfo> {
         val result = map.toMutableMap()
-
-        // Официальные праздники РФ на 2027 год
         val holidayDates = listOf(
             "2027-01-01", "2027-01-02", "2027-01-03", "2027-01-04",
             "2027-01-05", "2027-01-06", "2027-01-07", "2027-01-08",
-            "2027-02-23",
-            "2027-03-08",
-            "2027-05-01",
-            "2027-05-09",
-            "2027-06-12",
-            "2027-11-04"
+            "2027-02-23", "2027-03-08", "2027-05-01", "2027-05-09",
+            "2027-06-12", "2027-11-04"
         ).map { LocalDate.parse(it) }
 
         val names = mapOf(
-            1 to "Новогодние каникулы",
-            7 to "Рождество Христово",
-            2 to "День защитника Отечества",
-            3 to "Международный женский день",
-            5 to "Праздник Весны и Труда",
-            9 to "День Победы",
-            6 to "День России",
-            11 to "День народного единства"
+            1 to "Новогодние каникулы", 7 to "Рождество Христово",
+            2 to "День защитника Отечества", 3 to "Международный женский день",
+            5 to "Праздник Весны и Труда", 9 to "День Победы",
+            6 to "День России", 11 to "День народного единства"
         )
 
         holidayDates.forEach { date ->
@@ -74,7 +62,6 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
                 )
             }
         }
-
         return result
     }
 

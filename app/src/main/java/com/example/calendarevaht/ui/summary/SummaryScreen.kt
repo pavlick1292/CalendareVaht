@@ -1,32 +1,54 @@
 package com.example.calendarevaht.ui.summary
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.calendarevaht.domain.MonthNorm
-import com.example.calendarevaht.ui.stats.StatsViewModel
 import com.example.calendarevaht.ui.stats.StatsMode
+import com.example.calendarevaht.ui.stats.StatsViewModel
 import com.example.calendarevaht.ui.theme.ElevatedCard
 import java.time.YearMonth
+import androidx.core.graphics.toColorInt
 
 // Расширяем enum для режима
 enum class SummaryTab { MONTH, YEAR, NORMS }
@@ -111,12 +133,12 @@ fun SummaryScreen(
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
             } else {
                 state.mine?.let { mine ->
-                    StatsCard(stats = mine, isMine = true)
+                    StatsCard(stats = mine)
                     Spacer(Modifier.height(12.dp))
                 }
 
                 state.other?.let { other ->
-                    StatsCard(stats = other, isMine = false)
+                    StatsCard(stats = other)
                     Spacer(Modifier.height(12.dp))
                 }
 
@@ -125,7 +147,12 @@ fun SummaryScreen(
                         Column(Modifier.padding(12.dp)) {
                             Text("Отработано часов по месяцам", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             Spacer(Modifier.height(16.dp))
-                            HoursChart(monthly = state.monthly, mineColor = state.mine?.color, otherColor = state.other?.color)
+                            HoursChart(
+                                monthly = state.monthly,
+                                norms = state.monthlyNorms, // <-- ВОТ ЭТА СТРОКА
+                                mineColor = state.mine?.color,
+                                otherColor = state.other?.color
+                            )
                         }
                     }
                 }
@@ -162,7 +189,7 @@ private fun NormsTable(
                 Text("Мои", fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.weight(0.9f))
                 Text("Откл.", fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.weight(0.9f))
             }
-            Divider()
+            HorizontalDivider()
 
             var totalNorm = 0
             var totalMine = 0
@@ -188,7 +215,7 @@ private fun NormsTable(
                         modifier = Modifier.weight(0.9f)
                     )
                 }
-                Divider()
+                HorizontalDivider()
             }
 
             // Итоговая строка за год
@@ -218,7 +245,7 @@ private val monthNames = listOf(
 )
 
 @Composable
-private fun StatsCard(stats: com.example.calendarevaht.ui.stats.CompositionStats, isMine: Boolean) {
+private fun StatsCard(stats: com.example.calendarevaht.ui.stats.CompositionStats) {
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -250,44 +277,121 @@ private fun StatRow(label: String, value: String) {
 @Composable
 private fun HoursChart(
     monthly: List<com.example.calendarevaht.ui.stats.MonthPoint>,
+    norms: List<MonthNorm>,
     mineColor: Long?,
     otherColor: Long?
 ) {
-    val maxVal = monthly.maxOfOrNull { maxOf(it.mineHours, it.otherHours) }?.coerceAtLeast(1) ?: 1
+    val isDarkTheme = isSystemInDarkTheme()
 
-    Canvas(modifier = Modifier.fillMaxWidth().height(180.dp)) {
+    val maxVal = monthly.maxOfOrNull { maxOf(it.mineHours, it.otherHours) }?.coerceAtLeast(1) ?: 1
+    val maxNorm = norms.maxOfOrNull { it.normHours40h }?.coerceAtLeast(1) ?: 1
+    val finalMaxVal = maxOf(maxVal, maxNorm).toFloat()
+
+    Canvas(modifier = Modifier.fillMaxWidth().height(240.dp)) {
         val colWidth = size.width / 12f
         val barWidth = colWidth / 3f
+        // Оставляем отступ снизу для подписей месяцев и отклонений
+        val chartHeight = size.height - 60f
 
         monthly.forEachIndexed { index, point ->
             val x = index * colWidth
+            val monthNum = index + 1
 
+            // --- 1. Рисуем столбики ---
             if (mineColor != null) {
-                val h = (point.mineHours.toFloat() / maxVal) * size.height
+                val h = (point.mineHours.toFloat() / finalMaxVal) * chartHeight
                 drawRect(
                     color = Color(mineColor),
-                    topLeft = Offset(x + barWidth / 2, size.height - h),
+                    topLeft = Offset(x + barWidth / 2, chartHeight - h),
                     size = Size(barWidth, h)
                 )
             }
 
             if (otherColor != null) {
-                val h = (point.otherHours.toFloat() / maxVal) * size.height
+                val h = (point.otherHours.toFloat() / finalMaxVal) * chartHeight
                 drawRect(
                     color = Color(otherColor),
-                    topLeft = Offset(x + barWidth * 1.5f, size.height - h),
+                    topLeft = Offset(x + barWidth * 1.5f, chartHeight - h),
                     size = Size(barWidth, h)
                 )
             }
 
+            // --- 2. Рисуем линию нормы, её значение и отклонение ---
+            val norm = norms.firstOrNull { it.month == monthNum }
+
+            if (norm != null && norm.normHours40h > 0) {
+                val normY = chartHeight - (norm.normHours40h.toFloat() / finalMaxVal) * chartHeight
+
+                // Красная пунктирная линия
+                drawLine(
+                    color = Color.Red.copy(alpha = 0.5f),
+                    start = Offset(x + 2f, normY),
+                    end = Offset(x + colWidth - 2f, normY),
+                    strokeWidth = 2f,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                )
+
+                // Цвет обводки зависит от темы
+                val outlineColor = if (isDarkTheme) android.graphics.Color.WHITE else android.graphics.Color.BLACK
+                val textColor = android.graphics.Color.parseColor("#E53935") // Красный
+
+                val textPaint = android.graphics.Paint().apply {
+                    textSize = 22f
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    textAlign = android.graphics.Paint.Align.CENTER
+                }
+
+                // Обводка для числа нормы
+                textPaint.color = outlineColor
+                textPaint.style = android.graphics.Paint.Style.STROKE
+                textPaint.strokeWidth = 5f
+                textPaint.strokeJoin = android.graphics.Paint.Join.ROUND
+                drawContext.canvas.nativeCanvas.drawText(
+                    "${norm.normHours40h}",
+                    x + colWidth / 2f,
+                    normY - 8f,
+                    textPaint
+                )
+
+                // Сам текст числа нормы
+                textPaint.color = textColor
+                textPaint.style = android.graphics.Paint.Style.FILL
+                drawContext.canvas.nativeCanvas.drawText(
+                    "${norm.normHours40h}",
+                    x + colWidth / 2f,
+                    normY - 8f,
+                    textPaint
+                )
+
+                // Подпись отклонения внизу
+                val diff = point.mineHours - norm.normHours40h
+                if (diff != 0) {
+                    val diffText = if (diff > 0) "+$diff" else "$diff"
+                    val diffColor = if (diff > 0) android.graphics.Color.parseColor("#4CAF50") else android.graphics.Color.parseColor("#F44336")
+
+                    drawContext.canvas.nativeCanvas.drawText(
+                        diffText,
+                        x + colWidth / 2,
+                        chartHeight + 50f,
+                        android.graphics.Paint().apply {
+                            color = diffColor
+                            textSize = 24f
+                            isFakeBoldText = true
+                            textAlign = android.graphics.Paint.Align.CENTER
+                        }
+                    )
+                }
+            }
+
+            // --- 3. Подписи месяцев ---
             val mn = listOf("Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек")
             drawContext.canvas.nativeCanvas.drawText(
                 mn[index],
                 x + colWidth / 2,
-                size.height + 20f,
+                chartHeight + 25f,
                 android.graphics.Paint().apply {
                     color = android.graphics.Color.GRAY
-                    textSize = 24f
+                    textSize = 26f
                     textAlign = android.graphics.Paint.Align.CENTER
                 }
             )
