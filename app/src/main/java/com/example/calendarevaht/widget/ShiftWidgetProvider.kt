@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.widget.RemoteViews
 import com.example.calendarevaht.MainActivity
 import com.example.calendarevaht.R
@@ -33,18 +34,14 @@ class ShiftWidgetProvider : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        when (intent.action) {
-            ACTION_REFRESH -> refreshAll(context)
-            ACTION_THEME -> {
-                val current = WidgetTheme.getTheme(context)
-                WidgetTheme.setTheme(context, WidgetTheme.nextTheme(current))
-                refreshAll(context)
-            }
+        if (intent.action == ACTION_THEME) {
+            val current = WidgetTheme.getTheme(context)
+            WidgetTheme.setTheme(context, WidgetTheme.nextTheme(current))
+            refreshAll(context)
         }
     }
 
     companion object {
-        const val ACTION_REFRESH = "com.example.calendarevaht.widget.REFRESH"
         const val ACTION_THEME = "com.example.calendarevaht.widget.THEME"
 
         fun refreshAll(context: Context) {
@@ -64,10 +61,11 @@ class ShiftWidgetProvider : AppWidgetProvider() {
                 val templates = prefs.templates.first()
                 val mine = templates.firstOrNull { it.isMine }
 
-                // Получаем статус: либо дни до вахты, либо дни до дома
-                val (toWork, toHome) = calculateDays(mine, LocalDate.now())
+                val result = calculateStatus(mine, LocalDate.now())
 
+                // Берем тему из настроек ВИДЖЕТА
                 val theme = WidgetTheme.getTheme(context)
+
                 val layoutId = when (theme) {
                     WidgetTheme.THEME_LIGHT -> R.layout.widget_light
                     WidgetTheme.THEME_TRANSPARENT -> R.layout.widget_transparent
@@ -76,22 +74,33 @@ class ShiftWidgetProvider : AppWidgetProvider() {
 
                 val views = RemoteViews(context.packageName, layoutId)
 
-                // Логика отображения: показываем только одно значение в центре
-                if (toHome != null) {
-                    // Сейчас на вахте -> показываем "до дома"
-                    views.setTextViewText(R.id.widgetToWork, toHome.toString())
+                // Установка текста
+                if (result.daysToHome != null) {
+                    views.setTextViewText(R.id.widgetToWork, result.daysToHome.toString())
                     views.setTextViewText(R.id.widgetLabelToWork, "до дома")
-                } else if (toWork != null) {
-                    // Сейчас дома -> показываем "до вахты"
-                    views.setTextViewText(R.id.widgetToWork, toWork.toString())
+                } else if (result.daysToWork != null) {
+                    views.setTextViewText(R.id.widgetToWork, result.daysToWork.toString())
                     views.setTextViewText(R.id.widgetLabelToWork, "до вахты")
                 } else {
-                    // Нет данных
                     views.setTextViewText(R.id.widgetToWork, "—")
                     views.setTextViewText(R.id.widgetLabelToWork, "нет данных")
                 }
 
-                // Открыть приложение
+                views.setTextViewText(R.id.widgetTitle, result.title)
+                views.setProgressBar(R.id.widgetProgress, 100, result.progress, false)
+
+                // Цвета текста в зависимости от темы
+                if (theme == WidgetTheme.THEME_LIGHT) {
+                    views.setTextColor(R.id.widgetToWork, Color.parseColor("#121212"))
+                    views.setTextColor(R.id.widgetLabelToWork, Color.parseColor("#555555"))
+                    views.setTextColor(R.id.widgetTitle, Color.parseColor("#121212"))
+                } else {
+                    views.setTextColor(R.id.widgetToWork, Color.WHITE)
+                    views.setTextColor(R.id.widgetLabelToWork, Color.parseColor("#CCCCCC"))
+                    views.setTextColor(R.id.widgetTitle, Color.WHITE)
+                }
+
+                // Клик по виджету (открыть приложение)
                 val openIntent = Intent(context, MainActivity::class.java)
                 val openPending = PendingIntent.getActivity(
                     context, 0, openIntent,
@@ -99,17 +108,7 @@ class ShiftWidgetProvider : AppWidgetProvider() {
                 )
                 views.setOnClickPendingIntent(R.id.widgetRoot, openPending)
 
-                // Обновить
-                val refreshIntent = Intent(context, ShiftWidgetProvider::class.java).apply {
-                    action = ACTION_REFRESH
-                }
-                val refreshPending = PendingIntent.getBroadcast(
-                    context, 1, refreshIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                views.setOnClickPendingIntent(R.id.widgetRefresh, refreshPending)
-
-                // Сменить тему
+                // Клик по иконке смены темы
                 val themeIntent = Intent(context, ShiftWidgetProvider::class.java).apply {
                     action = ACTION_THEME
                 }
@@ -123,29 +122,43 @@ class ShiftWidgetProvider : AppWidgetProvider() {
             }
         }
 
-        /**
-         * Возвращает пару (дней до начала вахты, дней до дома).
-         * Если сейчас на вахте — (null, дни до конца вахты).
-         * Если дома — (дни до начала вахты, null).
-         */
-        private fun calculateDays(template: CycleTemplate?, today: LocalDate): Pair<Int?, Int?> {
-            if (template == null) return (null to null)
+        private data class WidgetStatus(
+            val daysToWork: Int?,
+            val daysToHome: Int?,
+            val title: String,
+            val progress: Int
+        )
 
-            // Найдём текущую и следующую вахту
+        private fun calculateStatus(template: CycleTemplate?, today: LocalDate): WidgetStatus {
+            if (template == null) return WidgetStatus(null, null, "Моя вахта", 0)
+
             val horizon = today.plusDays(365)
             val entries = CycleCalculator.expandCycleToDays(template, today.minusDays(365), horizon)
 
-            // Ищем, идёт ли вахта сегодня
             val currentShift = entries.firstOrNull { !today.isBefore(it.start) && !today.isAfter(it.end) }
             if (currentShift != null) {
-                val toHome = ChronoUnit.DAYS.between(today, currentShift.end).toInt() + 1
-                return (null to toHome)
+                val total = ChronoUnit.DAYS.between(currentShift.start, currentShift.end).toInt() + 1
+                val currentDay = ChronoUnit.DAYS.between(currentShift.start, today).toInt() + 1
+                val toHome = total - currentDay + 1
+                val progress = ((currentDay.toFloat() / total) * 100).toInt()
+                return WidgetStatus(null, toHome, "Идёт вахта", progress)
             }
 
-            // Иначе ищем ближайшую будущую вахту
-            val nextShift = entries.firstOrNull { it.start.isAfter(today) } ?: return (null to null)
-            val toWork = ChronoUnit.DAYS.between(today, nextShift.start).toInt()
-            return (toWork to null)
+            val nextShift = entries.firstOrNull { it.start.isAfter(today) }
+            val prevShift = entries.lastOrNull { it.end.isBefore(today) }
+
+            if (nextShift != null && prevShift != null) {
+                val totalRest = ChronoUnit.DAYS.between(prevShift.end, nextShift.start).toInt() - 1
+                val currentRest = ChronoUnit.DAYS.between(prevShift.end, today).toInt()
+                val toWork = ChronoUnit.DAYS.between(today, nextShift.start).toInt()
+                val progress = if (totalRest > 0) ((currentRest.toFloat() / totalRest) * 100).toInt() else 0
+                return WidgetStatus(toWork, null, "Отдых", progress)
+            } else if (nextShift != null) {
+                val toWork = ChronoUnit.DAYS.between(today, nextShift.start).toInt()
+                return WidgetStatus(toWork, null, "До вахты", 0)
+            }
+
+            return WidgetStatus(null, null, "Нет данных", 0)
         }
     }
 }

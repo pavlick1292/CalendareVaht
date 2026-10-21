@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -51,7 +52,9 @@ import com.example.calendarevaht.data.AppSettings
 import com.example.calendarevaht.data.SettingsPreferences
 import com.example.calendarevaht.domain.CycleCalculator
 import com.example.calendarevaht.domain.CycleTemplate
+import com.example.calendarevaht.domain.DayType
 import com.example.calendarevaht.domain.ShiftEntry
+import com.example.calendarevaht.domain.WorkDayInfo
 import com.example.calendarevaht.ui.components.DayCell
 import com.example.calendarevaht.ui.groupHolidaysForDisplay
 import com.example.calendarevaht.ui.shifts.ShiftsViewModel
@@ -96,7 +99,8 @@ fun HomeScreen(
 
     val status = remember(templates, today) { computeStatus(templates, today) }
 
-    val holidaysThisYear: Map<LocalDate, String> = holidaysByYear[currentMonth.year].orEmpty()
+    val workDays by hvm.workDaysMap.collectAsState()
+    val holidaysThisYear = holidaysByYear[currentMonth.year].orEmpty()
 
     val events = remember(templates, currentMonth, today, holidaysThisYear) {
         val monthStart = currentMonth.atDay(1)
@@ -113,13 +117,18 @@ fun HomeScreen(
             .toSortedMap()
     }
 
+    // Проверяем, есть ли сокращенные дни в текущем месяце
+    val hasShortenedThisMonth = remember(workDays, currentMonth) {
+        workDays.values.any {
+            YearMonth.from(it.date) == currentMonth &&
+                    (it.isShortened || it.type == DayType.SHORTENED_WORKING)
+        }
+    }
+
     val mineTemplate = templates.firstOrNull { it.isMine }
     val otherTemplate = templates.firstOrNull { !it.isMine }
     val mineColor = mineTemplate?.baseColor
     val otherColor = otherTemplate?.baseColor
-    val mineLabel = mineTemplate?.brigadeName?.ifBlank { "Мой состав" } ?: "Мой состав"
-    val otherLabel = otherTemplate?.brigadeName?.ifBlank { "Сменщик" } ?: "Сменщик"
-
     val overridesHash = remember(templates) {
         templates.fold(0) { acc, t -> 31 * acc + t.overrides.hashCode() }
     }
@@ -238,7 +247,7 @@ fun HomeScreen(
         // --- 4. Календарь с 3D-анимацией ---
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxWidth().height(340.dp),
+            modifier = Modifier.fillMaxWidth().height(380.dp),
             key = { page -> page }
         ) { page ->
             val month = startMonth.plusMonths(page.toLong())
@@ -246,7 +255,6 @@ fun HomeScreen(
                 templates.fold(0) { acc, t -> acc * 31 + t.overrides.hashCode() }
             }
 
-            // Вычисляем смещение страницы: от -1 (слева) до +1 (справа)
             val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
             val absOffset = pageOffset.absoluteValue
 
@@ -254,35 +262,20 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer {
-                        // 1. Сильная перспектива для эффекта объема (камера приближена)
                         cameraDistance = 14f * density
-
-                        // 2. Поворот по оси Y (книжный переворот)
                         rotationY = pageOffset * 25f
-
-                        // 3. Точка опоры (ось вращения).
-                        // Если листаем влево (pageOffset > 0), опора справа (1f).
-                        // Если листаем вправо (pageOffset < 0), опора слева (0f).
                         transformOrigin = TransformOrigin(
                             pivotFractionX = if (pageOffset > 0) 1f else 0f,
                             pivotFractionY = 0.5f
                         )
-
-                        // 4. Тень от отрывающегося листа (только для светлой темы)
                         if (!isDarkTheme) {
                             shadowElevation = 20.dp.toPx() * absOffset
                         }
-
-                        // 5. Прозрачность для противоположной страницы
                         alpha = 1f - (absOffset * 0.4f)
-
-                        // 6. Легкое уменьшение уходящей страницы
                         scaleX = 1f - (absOffset * 0.05f)
                         scaleY = 1f - (absOffset * 0.05f)
                     }
             ) {
-                // Оборачиваем в Box с непрозрачным фоном,
-                // чтобы сквозь поворачивающийся лист не просвечивал следующий месяц
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -292,7 +285,7 @@ fun HomeScreen(
                         month = month,
                         today = today,
                         templates = templates,
-                        holidays = holidaysByYear[month.year].orEmpty(),
+                        workDaysMap = workDays,
                         overridesHash = overridesHash,
                         templatesHash = templatesHash
                     )
@@ -302,19 +295,7 @@ fun HomeScreen(
 
         Spacer(Modifier.height(12.dp))
 
-        // --- 5. Легенда ---
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (mineColor != null) LegendItem(Color(mineColor), mineLabel)
-            if (otherColor != null) LegendItem(Color(otherColor), otherLabel)
-            LegendItem(Color(0xFFE53935), "праздник")
-            LegendItem(Color(0xFFEF9A9A), "выходной")
-        }
-
-        // --- 6. Праздники месяца ---
+                // --- 6. Праздники месяца ---
         if (holidaysThisMonth.isNotEmpty()) {
             Spacer(Modifier.height(10.dp))
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
@@ -334,9 +315,37 @@ fun HomeScreen(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        // --- 6.1. Сокращенные дни месяца ---
+        val shortenedThisMonth = remember(workDays, currentMonth) {
+            workDays.values
+                .filter {
+                    YearMonth.from(it.date) == currentMonth &&
+                            (it.isShortened || it.type == DayType.SHORTENED_WORKING)
+                }
+                .sortedBy { it.date }
+        }
 
-        // --- 7. Ближайшие события (ВОЗВРАЩЕНЫ ВНИЗ) ---
+        if (shortenedThisMonth.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text("Сокращенные дни", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(6.dp))
+                    shortenedThisMonth.forEach { info ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(8.dp).background(Color(0xFFFFF59D), CircleShape))
+                            Spacer(Modifier.width(8.dp))
+                            val dateStr = info.date.format(DateTimeFormatter.ofPattern("dd.MM"))
+                            Text(dateStr, fontSize = 13.sp)
+                        }
+                        Spacer(Modifier.height(4.dp))
+                    }
+                }
+            }
+        }
+
+
+        // --- 7. Ближайшие события ---
         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text("Ближайшие события", fontSize = 14.sp, fontWeight = FontWeight.Bold)
@@ -364,15 +373,6 @@ fun HomeScreen(
         }
 
         Spacer(Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun LegendItem(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(10.dp).background(color, CircleShape))
-        Spacer(Modifier.width(4.dp))
-        Text(label, fontSize = 11.sp)
     }
 }
 
@@ -467,17 +467,16 @@ private fun upcomingEvents(
     val result = mutableListOf<Event>()
 
     templates.forEach { t ->
-        val shiftName = t.brigadeName.ifBlank { if (t.isMine) "Мой состав" else "Сменщик" }
         val entries = CycleCalculator.expandCycleToDays(t, historyStart, horizon)
         val sorted = entries.sortedBy { it.start }
 
         sorted.forEachIndexed { index, s ->
             if (!s.start.isBefore(today)) {
-                result.add(Event(s.start, "Начало вахты ($shiftName)", t.baseColor))
+                result.add(Event(s.start, "Начало вахты", t.baseColor))
             }
             val isLastPiece = (index == sorted.lastIndex) || sorted[index + 1].start.isAfter(s.end.plusDays(1))
             if (isLastPiece && !s.end.isBefore(today)) {
-                result.add(Event(s.end, "Конец вахты ($shiftName)", t.baseColor))
+                result.add(Event(s.end, "Конец вахты", t.baseColor))
             }
         }
     }
@@ -490,63 +489,86 @@ private fun MonthGrid(
     month: YearMonth,
     today: LocalDate,
     templates: List<CycleTemplate>,
-    holidays: Map<LocalDate, String>,
+    workDaysMap: Map<LocalDate, WorkDayInfo>,
     overridesHash: Int,
     templatesHash: Int
 ) {
-    val weekDays = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
-    val firstDayOfMonth = month.atDay(1)
-    val daysInMonth = month.lengthOfMonth()
-    val firstDayOffset = (firstDayOfMonth.dayOfWeek.value - 1 + 7) % 7
-    val totalCells = firstDayOffset + daysInMonth
-    val rows = (totalCells + 6) / 7
-    val monthStart = month.atDay(1)
-    val monthEnd = month.atDay(daysInMonth)
-
-    val shiftsByDay: Map<LocalDate, List<ShiftEntry>> = remember(month, templatesHash, overridesHash) {
-        if (templates.isEmpty()) return@remember emptyMap()
-
-        val all: List<ShiftEntry> = templates.flatMap { t ->
-            CycleCalculator.expandCycleToDays(t, monthStart.minusDays(5), monthEnd.plusDays(5))
+    val shiftsByDay = remember(month, templatesHash, overridesHash) {
+        val days = mutableMapOf<LocalDate, MutableList<ShiftEntry>>()
+        val monthStart = month.atDay(1)
+        val monthEnd = month.atEndOfMonth()
+        templates.forEach { t ->
+            CycleCalculator.expandCycleToDays(t, monthStart.minusDays(10), monthEnd.plusDays(10))
+                .forEach { s ->
+                    var d = s.start
+                    while (!d.isAfter(s.end)) {
+                        if (!d.isBefore(monthStart) && !d.isAfter(monthEnd)) {
+                            days.getOrPut(d) { mutableListOf() }.add(s)
+                        }
+                        d = d.plusDays(1)
+                    }
+                }
         }
-
-        val map = mutableMapOf<LocalDate, MutableList<ShiftEntry>>()
-        var d = monthStart
-        while (!d.isAfter(monthEnd)) {
-            val shiftsForDay = all.filter { !d.isBefore(it.start) && !d.isAfter(it.end) }
-            if (shiftsForDay.isNotEmpty()) {
-                map[d] = shiftsForDay.toMutableList()
-            }
-            d = d.plusDays(1)
-        }
-        map
+        days
     }
 
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-            weekDays.forEach { day ->
-                Box(modifier = Modifier.width(48.dp), contentAlignment = Alignment.Center) {
-                    Text(day, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+    val firstDay = month.atDay(1)
+    val firstDow = firstDay.dayOfWeek.value
+    val daysInMonth = month.lengthOfMonth()
+    val lead = (firstDow + 6) % 7
+
+    Column(Modifier.fillMaxSize()) {
+        val dowLabels = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            dowLabels.forEach { label ->
+                Text(
+                    text = label,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
-        for (row in 0 until rows) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                for (col in 0 until 7) {
-                    val cellIndex = row * 7 + col
-                    val dayNumber = cellIndex - firstDayOffset + 1
-                    if (dayNumber in 1..daysInMonth) {
-                        val date = month.atDay(dayNumber)
+        Spacer(Modifier.height(6.dp))
+
+        var cell = 0
+        val weeks = (lead + daysInMonth + 6) / 7
+        repeat(weeks) { weekIndex ->
+            if (weekIndex > 0) Spacer(Modifier.height(4.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                repeat(7) {
+                    val dayNumber = cell - lead + 1
+                    cell++
+                    if (dayNumber < 1 || dayNumber > daysInMonth) {
+                        Spacer(Modifier.weight(1f).size(48.dp))
+                        return@repeat
+                    }
+                    val date = month.atDay(dayNumber)
+                    val info = workDaysMap[date]
+                    val isHoliday = info?.type == DayType.PUBLIC_HOLIDAY
+                    val isWeekend = info?.type == DayType.WEEKEND ||
+                            info?.type == DayType.TRANSFERRED_DAY_OFF ||
+                            date.dayOfWeek.value >= 6
+                    val isShortened = info?.isShortened == true ||
+                            info?.type == DayType.SHORTENED_WORKING
+
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                         DayCell(
                             date = date,
                             isToday = date == today,
-                            isHoliday = date in holidays,
-                            isWeekend = date.dayOfWeek.value >= 6,
+                            isHoliday = isHoliday,
+                            isWeekend = isWeekend,
+                            isShortened = isShortened,
                             shifts = shiftsByDay[date]?.toList() ?: emptyList(),
                             onDayClick = { }
                         )
-                    } else {
-                        Spacer(Modifier.size(48.dp))
                     }
                 }
             }

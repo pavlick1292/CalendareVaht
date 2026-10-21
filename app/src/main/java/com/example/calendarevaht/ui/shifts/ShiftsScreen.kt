@@ -31,10 +31,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -72,7 +75,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.calendarevaht.domain.Brigade
 import com.example.calendarevaht.domain.CycleCalculator
 import com.example.calendarevaht.domain.CycleRule
 import com.example.calendarevaht.domain.CycleTemplate
@@ -95,7 +97,6 @@ fun ShiftsScreen(
     vm: ShiftsViewModel = viewModel()
 ) {
     val templates by vm.templates.collectAsState()
-    val brigades by vm.brigades.collectAsState()
     val persons by vm.persons.collectAsState()
 
     val forecastMonths by vm.forecastMonths.collectAsState()
@@ -105,8 +106,6 @@ fun ShiftsScreen(
 
     var selectedTab by remember { mutableStateOf(0) }
     var viewingPerson by remember { mutableStateOf<Person?>(null) }
-
-    // Состояние для добавления нового сотрудника
     var creatingPerson by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -142,7 +141,7 @@ fun ShiftsScreen(
                         }
                     } else {
                         IconButton(onClick = { creatingPerson = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Добавить сотрудника")
+                            Icon(Icons.Default.Add, contentDescription = "Добавить человека")
                         }
                     }
                 }
@@ -159,7 +158,7 @@ fun ShiftsScreen(
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("Сотрудники") }
+                    text = { Text("Люди") }
                 )
             }
 
@@ -189,21 +188,25 @@ fun ShiftsScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(templates, key = { it.id }) { t ->
-                                TemplateRow(template = t, onClick = { editing = t })
+                                TemplateRow(
+                                    template = t,
+                                    persons = persons,
+                                    onClick = { editing = t }
+                                )
                             }
                         }
                     }
                 } else {
-                    // Вкладка "Сотрудники"
+                    // Вкладка "Люди"
                     if (persons.isEmpty()) {
                         Column(
                             modifier = Modifier.fillMaxSize().padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Text("Сотрудников пока нет", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Людей пока нет", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.height(12.dp))
-                            Button(onClick = { creatingPerson = true }) { Text("Добавить сотрудника") }
+                            Button(onClick = { creatingPerson = true }) { Text("Добавить первого человека") }
                         }
                     } else {
                         LazyColumn(
@@ -212,27 +215,12 @@ fun ShiftsScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(persons, key = { it.id }) { person ->
-                                val personBrigade = brigades.find { person.id in it.personIds }
-                                Card(
-                                    modifier = Modifier.fillMaxWidth().clickable { viewingPerson = person },
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                                ) {
-                                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
-                                            Text(person.fullName.take(1).uppercase(), color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
-                                        }
-                                        Spacer(Modifier.width(12.dp))
-                                        Column {
-                                            Text(person.fullName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                            Text("Должность: ${person.position.ifBlank { "не указана" }}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            if (personBrigade != null) {
-                                                Text("Бригада: ${personBrigade.name}", fontSize = 13.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
-                                            } else {
-                                                Text("Без бригады", fontSize = 13.sp, color = MaterialTheme.colorScheme.error)
-                                            }
-                                        }
-                                    }
-                                }
+                                val assignedShifts = templates.filter { person.id in it.assignedPersonIds }
+                                PersonRow(
+                                    person = person,
+                                    assignedShiftNames = assignedShifts.map { it.title },
+                                    onClick = { viewingPerson = person }
+                                )
                             }
                         }
                     }
@@ -245,7 +233,7 @@ fun ShiftsScreen(
     if (creating) {
         EditShiftDialog(
             initial = null,
-            brigades = brigades,
+            persons = persons,
             onDismiss = { creating = false },
             onSave = { t -> vm.add(t); creating = false },
             onDelete = null,
@@ -256,7 +244,7 @@ fun ShiftsScreen(
     editing?.let { template ->
         EditShiftDialog(
             initial = template,
-            brigades = brigades,
+            persons = persons,
             onDismiss = { editing = null },
             onSave = { t -> vm.update(t); editing = null },
             onDelete = { vm.remove(template.id); editing = null },
@@ -280,11 +268,15 @@ fun ShiftsScreen(
     viewingPerson?.let { person ->
         EditPersonDialog(
             person = person,
-            brigades = brigades,
+            allPersons = persons,
+            allShifts = templates,
             onDismiss = { viewingPerson = null },
-            onSave = { updatedPerson, newBrigadeId ->
-                vm.updatePerson(updatedPerson)
-                vm.movePersonToBrigade(updatedPerson.id, newBrigadeId)
+            onSave = { updatedPerson, selectedShiftIds ->
+                vm.updatePerson(updatedPerson, selectedShiftIds)
+                viewingPerson = null
+            },
+            onDelete = {
+                vm.deletePerson(person.id)
                 viewingPerson = null
             }
         )
@@ -292,107 +284,115 @@ fun ShiftsScreen(
 
     if (creatingPerson) {
         AddPersonDialog(
-            onSave = { name, pos ->
-                // По умолчанию добавляем в первую бригаду (если она есть)
-                val defaultBrigadeId = brigades.firstOrNull()?.id ?: 1L
-                vm.addPersonToBrigade(defaultBrigadeId, name, pos)
+            allPersons = persons,
+            allShifts = templates,
+            onSave = { name, pos, isMe, selectedShiftIds ->
+                vm.addPerson(name, pos, isMe)
+                // Привязка к вахтам при создании не реализована в диалоге (можно добавить позже)
                 creatingPerson = false
             },
             onCancel = { creatingPerson = false }
         )
     }
 }
-
 // === ВСПОМОГАТЕЛЬНЫЕ КОМПОНЕНТЫ ===
 
 @Composable
-private fun EditPersonDialog(
+private fun PersonRow(
     person: Person,
-    brigades: List<Brigade>,
-    onDismiss: () -> Unit,
-    onSave: (Person, Long?) -> Unit
+    assignedShiftNames: List<String>,
+    onClick: () -> Unit
 ) {
-    var name by remember { mutableStateOf(person.fullName) }
-    var position by remember { mutableStateOf(person.position) }
-
-    val currentBrigade = brigades.find { person.id in it.personIds }
-    var selectedBrigadeId by remember { mutableStateOf(currentBrigade?.id) }
-    var expandedMenu by remember { mutableStateOf(false) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Редактировать сотрудника") },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("ФИО") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = position,
-                    onValueChange = { position = it },
-                    label = { Text("Должность") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(8.dp))
-
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = brigades.find { it.id == selectedBrigadeId }?.name ?: "Не выбрана",
-                        onValueChange = { },
-                        label = { Text("Бригада") },
-                        readOnly = true,
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Box(modifier = Modifier.matchParentSize().clickable { expandedMenu = true })
-
-                    DropdownMenu(
-                        expanded = expandedMenu,
-                        onDismissRequest = { expandedMenu = false }
-                    ) {
-                        brigades.forEach { brigade ->
-                            DropdownMenuItem(
-                                text = { Text(brigade.name) },
-                                onClick = {
-                                    selectedBrigadeId = brigade.id
-                                    expandedMenu = false
-                                }
-                            )
-                        }
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier.size(40.dp).clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(person.fullName.take(1).uppercase(), color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(person.fullName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    if (person.isMe) {
+                        Spacer(Modifier.width(8.dp))
+                        Icon(Icons.Default.Star, contentDescription = "Это я", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Text(" Это я", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
                     }
                 }
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                if (name.isNotBlank()) {
-                    onSave(person.copy(fullName = name, position = position), selectedBrigadeId)
+                Text("Должность: ${person.position.ifBlank { "не указана" }}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (assignedShiftNames.isNotEmpty()) {
+                    Text("Вахты: ${assignedShiftNames.joinToString(", ")}", fontSize = 13.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                } else {
+                    Text("Без вахты", fontSize = 13.sp, color = MaterialTheme.colorScheme.error)
                 }
-            }) { Text("Сохранить") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Отмена") }
+            }
         }
-    )
+    }
+}
+
+@Composable
+private fun TemplateRow(
+    template: CycleTemplate,
+    persons: List<Person>,
+    onClick: () -> Unit
+) {
+    val fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+    val assignedNames = persons.filter { it.id in template.assignedPersonIds }.map { it.fullName }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(Color(template.baseColor)))
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(template.title.ifBlank { "Без названия" }, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    if (template.isMine) {
+                        Spacer(Modifier.width(8.dp))
+                        Icon(Icons.Default.Star, contentDescription = "Моя", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                    }
+                }
+                if (template.isOneTime) {
+                    Text("Разовая · ${template.startDate.format(fmt)} — ${template.endDate?.format(fmt) ?: "?"}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Text("Циклическая · с ${template.startDate.format(fmt)} · ${template.initialRule.workDays}/${template.initialRule.restDays}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (template.overrides.isNotEmpty()) {
+                        Text("измененных вахт: ${template.overrides.size}", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                if (assignedNames.isEmpty()) {
+                    Text("Никто не прикреплён", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Text("Люди: ${assignedNames.joinToString(", ")}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
 }
 
 @Composable
 private fun AddPersonDialog(
-    onSave: (String, String) -> Unit,
+    allPersons: List<Person>,
+    allShifts: List<CycleTemplate>,
+    onSave: (String, String, Boolean, List<Long>) -> Unit,
     onCancel: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var position by remember { mutableStateOf("") }
+    var isMe by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Новый сотрудник") },
+        title = { Text("Новый человек") },
         text = {
             Column {
                 OutlinedTextField(
@@ -410,11 +410,16 @@ private fun AddPersonDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = isMe, onCheckedChange = { isMe = it })
+                    Text("Это я", fontSize = 14.sp)
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { if (name.isNotBlank()) onSave(name, position) },
+                onClick = { if (name.isNotBlank()) onSave(name, position, isMe, emptyList()) },
                 enabled = name.isNotBlank()
             ) { Text("Сохранить") }
         },
@@ -425,33 +430,96 @@ private fun AddPersonDialog(
 }
 
 @Composable
-private fun TemplateRow(
-    template: CycleTemplate,
-    onClick: () -> Unit
+private fun EditPersonDialog(
+    person: Person,
+    allPersons: List<Person>,
+    allShifts: List<CycleTemplate>,
+    onDismiss: () -> Unit,
+    onSave: (Person, List<Long>) -> Unit,
+    onDelete: () -> Unit
 ) {
-    val fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy")
-    val displayName = template.brigadeName.ifBlank { "Без названия" }
+    var name by remember { mutableStateOf(person.fullName) }
+    var position by remember { mutableStateOf(person.position) }
+    var isMe by remember { mutableStateOf(person.isMe) }
 
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(Color(template.baseColor)))
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(displayName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                if (template.isOneTime) {
-                    Text("Разовая · ${template.startDate.format(fmt)} — ${template.endDate?.format(fmt) ?: "?"}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    var selectedShiftIds by remember {
+        mutableStateOf(allShifts.filter { person.id in it.assignedPersonIds }.map { it.id }.toSet())
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Редактировать человека") },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("ФИО") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = position,
+                    onValueChange = { position = it },
+                    label = { Text("Должность") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = isMe, onCheckedChange = { isMe = it })
+                    Text("Это я", fontSize = 14.sp)
+                }
+
+                Spacer(Modifier.height(12.dp))
+                Text("Вахты:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+
+                if (allShifts.isEmpty()) {
+                    Text("Вахт пока нет", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    Text("Циклическая · с ${template.startDate.format(fmt)} · ${template.initialRule.workDays}/${template.initialRule.restDays}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (template.overrides.isNotEmpty()) {
-                        Text("измененных вахт: ${template.overrides.size}", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                    allShifts.forEach { shift ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                selectedShiftIds = if (shift.id in selectedShiftIds) {
+                                    selectedShiftIds - shift.id
+                                } else {
+                                    selectedShiftIds + shift.id
+                                }
+                            },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = shift.id in selectedShiftIds,
+                                onCheckedChange = { checked ->
+                                    selectedShiftIds = if (checked) selectedShiftIds + shift.id else selectedShiftIds - shift.id
+                                }
+                            )
+                            Text(shift.title.ifBlank { "Без названия" }, fontSize = 14.sp)
+                        }
                     }
                 }
+
+                Spacer(Modifier.height(12.dp))
+                TextButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Удалить человека", color = MaterialTheme.colorScheme.error)
+                }
             }
+        },
+        confirmButton = {
+            Button(onClick = {
+                if (name.isNotBlank()) {
+                    onSave(person.copy(fullName = name, position = position, isMe = isMe), selectedShiftIds.toList())
+                }
+            }) { Text("Сохранить") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Отмена") }
         }
-    }
+    )
 }
 
 @Composable
@@ -524,7 +592,7 @@ private fun ColorPicker(selected: Long, onSelect: (Long) -> Unit) {
 @Composable
 private fun EditShiftDialog(
     initial: CycleTemplate?,
-    brigades: List<Brigade>,
+    persons: List<Person>,
     onDismiss: () -> Unit,
     onSave: (CycleTemplate) -> Unit,
     onDelete: (() -> Unit)?,
@@ -533,14 +601,22 @@ private fun EditShiftDialog(
 ) {
     val isEdit = initial != null
     var isOneTime by remember { mutableStateOf(initial?.isOneTime ?: false) }
+    var titleInput by remember { mutableStateOf(initial?.title ?: "") }
     var startDate by remember { mutableStateOf(initial?.startDate ?: LocalDate.now()) }
     var endDate by remember { mutableStateOf(initial?.endDate ?: LocalDate.now().plusDays(14)) }
     var workText by remember { mutableStateOf((initial?.initialRule?.workDays ?: 15).toString()) }
     var restText by remember { mutableStateOf((initial?.initialRule?.restDays ?: 15).toString()) }
     var isMine by remember { mutableStateOf(initial?.isMine ?: false) }
 
-    var selectedBrigade by remember { mutableStateOf(brigades.firstOrNull { it.id == initial?.brigadeId } ?: brigades.firstOrNull()) }
-    var expandedBrigadeMenu by remember { mutableStateOf(false) }
+    // Выбранные люди
+    var selectedPersonIds by remember {
+        mutableStateOf(initial?.assignedPersonIds?.toSet() ?: emptySet())
+    }
+
+    // Признак "это мой состав" (по факту выбора "себя")
+    var hasMeSelected by remember {
+        mutableStateOf(initial?.assignedPersonIds?.any { id -> persons.find { it.id == id }?.isMe == true } ?: false)
+    }
 
     var color by remember { mutableStateOf(initial?.baseColor ?: PaletteColors[0]) }
     var showShiftSelection by remember { mutableStateOf(false) }
@@ -571,32 +647,15 @@ private fun EditShiftDialog(
                     }
                 }
 
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = selectedBrigade?.name ?: "Выберите бригаду",
-                        onValueChange = { },
-                        label = { Text("Бригада") },
-                        readOnly = true,
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Box(modifier = Modifier.matchParentSize().clickable { expandedBrigadeMenu = true })
-
-                    DropdownMenu(
-                        expanded = expandedBrigadeMenu,
-                        onDismissRequest = { expandedBrigadeMenu = false }
-                    ) {
-                        brigades.forEach { brigade ->
-                            DropdownMenuItem(
-                                text = { Text(brigade.name) },
-                                onClick = {
-                                    selectedBrigade = brigade
-                                    expandedBrigadeMenu = false
-                                }
-                            )
-                        }
-                    }
-                }
+                // Название вахты
+                OutlinedTextField(
+                    value = titleInput,
+                    onValueChange = { titleInput = it },
+                    label = { Text(if (isOneTime) "Название (например, Командировка)" else "Название вахты") },
+                    placeholder = { Text("Введите название") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(Modifier.height(8.dp))
 
                 ColorPicker(selected = color, onSelect = { color = it })
@@ -634,22 +693,65 @@ private fun EditShiftDialog(
                     Spacer(Modifier.height(4.dp))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = isMine, onCheckedChange = { isMine = it })
+                        Checkbox(
+                            checked = hasMeSelected,
+                            onCheckedChange = {
+                                hasMeSelected = it
+                                if (it) {
+                                    val me = persons.find { p -> p.isMe }
+                                    if (me != null) selectedPersonIds = selectedPersonIds + me.id
+                                } else {
+                                    val me = persons.find { p -> p.isMe }
+                                    if (me != null) selectedPersonIds = selectedPersonIds - me.id
+                                }
+                            }
+                        )
                         Text("Это мой состав", fontSize = 13.sp)
                     }
+                }
 
-                    if (isEdit && currentOverrides.isNotEmpty()) {
-                        Spacer(Modifier.height(12.dp))
-                        Text("Измененные вахты:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        currentOverrides.sortedBy { it.originalStart }.forEach { ov ->
-                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Было: ${ov.originalStart.format(fmt)}", fontSize = 13.sp)
-                                    Text("Стало: ${ov.newStart.format(fmt)} · ${ov.workDays}/${ov.restDays}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(12.dp))
+                Text("Люди на вахте:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+
+                if (persons.isEmpty()) {
+                    Text("Людей пока нет — создайте их на вкладке «Люди»", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    persons.forEach { person ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                selectedPersonIds = if (person.id in selectedPersonIds) {
+                                    selectedPersonIds - person.id
+                                } else {
+                                    selectedPersonIds + person.id
                                 }
-                                IconButton(onClick = { if (onRemoveOverride != null) onRemoveOverride(ov.originalStart) }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Удалить")
+                                // Синхронизируем чекбокс "это мой состав"
+                                hasMeSelected = selectedPersonIds.any { id -> persons.find { it.id == id }?.isMe == true }
+                            },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = person.id in selectedPersonIds,
+                                onCheckedChange = { checked ->
+                                    selectedPersonIds = if (checked) selectedPersonIds + person.id else selectedPersonIds - person.id
+                                    hasMeSelected = selectedPersonIds.any { id -> persons.find { it.id == id }?.isMe == true }
                                 }
+                            )
+                            Text(person.fullName + if (person.isMe) " ⭐" else "", fontSize = 14.sp)
+                        }
+                    }
+                }
+
+                if (isEdit && currentOverrides.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text("Измененные вахты:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    currentOverrides.sortedBy { it.originalStart }.forEach { ov ->
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Было: ${ov.originalStart.format(fmt)}", fontSize = 13.sp)
+                                Text("Стало: ${ov.newStart.format(fmt)} · ${ov.workDays}/${ov.restDays}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            IconButton(onClick = { if (onRemoveOverride != null) onRemoveOverride(ov.originalStart) }) {
+                                Icon(Icons.Default.Close, contentDescription = "Удалить")
                             }
                         }
                     }
@@ -662,9 +764,10 @@ private fun EditShiftDialog(
                     val id = initial?.id ?: 0L
                     val newTemplate: CycleTemplate
                     if (isOneTime) {
-                        if (endDate.isBefore(startDate) || selectedBrigade == null) return@TextButton
+                        if (endDate.isBefore(startDate) || titleInput.isBlank()) return@TextButton
                         newTemplate = CycleTemplate(
                             id = id,
+                            title = titleInput,
                             initialRule = CycleRule(workDays = 1, restDays = 0),
                             startDate = startDate,
                             endDate = endDate,
@@ -673,16 +776,16 @@ private fun EditShiftDialog(
                             overrides = initial?.overrides ?: emptyList(),
                             countBackward = false,
                             backwardLimitMonths = 0,
-                            isMine = isMine,
-                            brigadeId = selectedBrigade!!.id,
-                            brigadeName = selectedBrigade!!.name
+                            isMine = hasMeSelected,
+                            assignedPersonIds = selectedPersonIds.toList()
                         )
                     } else {
                         val work = workText.toIntOrNull() ?: return@TextButton
                         val rest = restText.toIntOrNull() ?: return@TextButton
-                        if (work <= 0 || selectedBrigade == null) return@TextButton
+                        if (work <= 0 || titleInput.isBlank()) return@TextButton
                         newTemplate = CycleTemplate(
                             id = id,
+                            title = titleInput,
                             initialRule = CycleRule(workDays = work, restDays = rest),
                             startDate = startDate,
                             endDate = null,
@@ -691,14 +794,13 @@ private fun EditShiftDialog(
                             overrides = initial?.overrides ?: emptyList(),
                             countBackward = false,
                             backwardLimitMonths = 0,
-                            isMine = isMine,
-                            brigadeId = selectedBrigade!!.id,
-                            brigadeName = selectedBrigade!!.name
+                            isMine = hasMeSelected,
+                            assignedPersonIds = selectedPersonIds.toList()
                         )
                     }
                     onSave(newTemplate)
                 },
-                enabled = selectedBrigade != null
+                enabled = titleInput.isNotBlank()
             ) { Text("Сохранить") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }

@@ -21,33 +21,41 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.calendarevaht.ui.calendar.CalendarScreen
 import com.example.calendarevaht.ui.home.HomeScreen
+import com.example.calendarevaht.ui.more.AboutScreen
 import com.example.calendarevaht.ui.more.MoreScreen
 import com.example.calendarevaht.ui.navigation.BottomNavItem
 import com.example.calendarevaht.ui.onboarding.OnboardingScreen
 import com.example.calendarevaht.ui.settings.SettingsScreen
 import com.example.calendarevaht.ui.shifts.ShiftsScreen
-import com.example.calendarevaht.ui.stats.StatsScreen
 import com.example.calendarevaht.ui.summary.SummaryScreen
+import com.example.calendarevaht.ui.theme.AppTheme
 
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    currentTheme: AppTheme,
+    onThemeChange: (AppTheme) -> Unit
+) {
     val onboardingVm: OnboardingViewModel = viewModel()
     val onboardingShown by onboardingVm.shown.collectAsState()
 
     when (onboardingShown) {
         null -> Box(Modifier.fillMaxSize())
         false -> OnboardingScreen(onFinish = { onboardingVm.markShown() })
-        true -> MainContent()
+        true -> MainContent(currentTheme = currentTheme, onThemeChange = onThemeChange)
     }
 }
 
 @Composable
-private fun MainContent() {
+private fun MainContent(
+    currentTheme: AppTheme,
+    onThemeChange: (AppTheme) -> Unit
+) {
     val nav = rememberNavController()
     val backStack by nav.currentBackStackEntryAsState()
     val current = backStack?.destination?.route
 
-    val showBar = current != "summary_calendar"
+    // Скрываем нижнюю панель на некоторых экранах
+    val showBar = current != "summary_calendar" && current != "about"
 
     val barBg = MaterialTheme.colorScheme.surface
     val selectedColor = MaterialTheme.colorScheme.primary
@@ -108,13 +116,18 @@ private fun MainContent() {
             composable(BottomNavItem.MORE.route) {
                 MoreScreen(
                     onOpenSettings = { nav.navigate("settings") },
-                    onOpenStats = { nav.navigate("stats") }
+                    onOpenAbout = { nav.navigate("about") }
                 )
             }
-            composable("settings") { SettingsScreen(onBack = { nav.popBackStack() }) }
-            composable("stats") { StatsScreen(onBack = { nav.popBackStack() }) }
+            composable("settings") {
+                SettingsScreen(
+                    onBack = { nav.popBackStack() },
+                    currentTheme = currentTheme,
+                    onThemeChange = onThemeChange
+                )
+            }
+            composable("about") { AboutScreen(onBack = { nav.popBackStack() }) }
             composable("summary_calendar") { CalendarScreen(onBack = { nav.popBackStack() }) }
         }
     }
 }
-

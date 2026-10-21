@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_days_default">15</string>
+    <string name="widget_label_to_home">до дома</string>
+    <string name="widget_label_to_work">до вахты</string>
+    <string name="widget_title_default">Моя вахта</string>
+    <string name="widget_change_theme">Сменить тему</string>
+    <string name="widget_no_data">—</string>
+    <string name="widget_no_data_label">нет данных</string>
+    <string name="widget_status_shift">Идёт вахта</string>
+    <string name="widget_status_rest">Отдых</string>
+    <string name="widget_status_before">До вахты</string>
+</resources>

@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun MoreScreen(
     onOpenSettings: () -> Unit,
-    onOpenStats: () -> Unit
+    onOpenAbout: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -38,11 +38,10 @@ fun MoreScreen(
         Text("Ещё", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
 
-        MoreItem("Статистика", "Сравнение составов за месяц и год", onOpenStats)
-        Spacer(Modifier.height(8.dp))
         MoreItem("Настройки", "Тема, место вахты, часы в смене", onOpenSettings)
         Spacer(Modifier.height(8.dp))
-        MoreItem("О приложении", "CalendareVaht", onOpenSettings.let { { } })
+
+        MoreItem("О приложении", "CalendareVaht, версия 1.0.0", onOpenAbout)
     }
 }
 

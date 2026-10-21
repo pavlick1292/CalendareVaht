@@ -3,11 +3,14 @@ package com.example.calendarevaht.ui.stats
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.calendarevaht.data.HolidayRepository
 import com.example.calendarevaht.data.SettingsPreferences
 import com.example.calendarevaht.data.ShiftPreferences
+import com.example.calendarevaht.data.WorkCalendarRepository
 import com.example.calendarevaht.domain.CycleCalculator
 import com.example.calendarevaht.domain.CycleTemplate
+import com.example.calendarevaht.domain.DayType
+import com.example.calendarevaht.domain.MonthNorm
+import com.example.calendarevaht.domain.WorkDayInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,7 +42,9 @@ data class StatsUiState(
     val mine: CompositionStats? = null,
     val other: CompositionStats? = null,
     val monthly: List<MonthPoint> = emptyList(),
-    val loading: Boolean = true
+    val loading: Boolean = true,
+    val workDaysMap: Map<LocalDate, WorkDayInfo> = emptyMap(),
+    val monthlyNorms: List<MonthNorm> = emptyList()
 )
 
 enum class StatsMode { MONTH, YEAR }
@@ -47,7 +52,7 @@ enum class StatsMode { MONTH, YEAR }
 class StatsViewModel(app: Application) : AndroidViewModel(app) {
     private val shiftPrefs = ShiftPreferences(app)
     private val settingsPrefs = SettingsPreferences(app)
-    private val holidayRepo = HolidayRepository(app)
+    private val workCalendarRepo = WorkCalendarRepository(app)
 
     private val _state = MutableStateFlow(StatsUiState())
     val state: StateFlow<StatsUiState> = _state.asStateFlow()
@@ -69,7 +74,10 @@ class StatsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun changeYear(delta: Int) {
         val newYear = _state.value.year + delta
-        _state.value = _state.value.copy(year = newYear, month = YearMonth.of(newYear, _state.value.month.monthValue))
+        _state.value = _state.value.copy(
+            year = newYear,
+            month = YearMonth.of(newYear, _state.value.month.monthValue)
+        )
         reload()
     }
 
@@ -86,16 +94,19 @@ class StatsViewModel(app: Application) : AndroidViewModel(app) {
                 StatsMode.MONTH -> s.month.atDay(1) to s.month.atDay(s.month.lengthOfMonth())
                 StatsMode.YEAR -> LocalDate.of(s.year, 1, 1) to LocalDate.of(s.year, 12, 31)
             }
-            val holidays = holidayRepo.load(s.year)
+
+            // Загружаем данные производственного календаря
+            val workDaysMap = workCalendarRepo.getWorkDays()
+            val monthlyNorms = workCalendarRepo.getMonthlyNorms()
 
             val mineTemplate = templates.firstOrNull { it.isMine }
             val otherTemplate = templates.firstOrNull { !it.isMine }
 
-            val mineTitle = mineTemplate?.brigadeName?.ifBlank { "Мой состав" } ?: "Мой состав"
-            val otherTitle = otherTemplate?.brigadeName?.ifBlank { "Сменщик" } ?: "Сменщик"
+            val mineTitle = mineTemplate?.title?.ifBlank { "Мой состав" } ?: "Мой состав"
+            val otherTitle = otherTemplate?.title?.ifBlank { "Сменщик" } ?: "Сменщик"
 
-            val mine = mineTemplate?.let { buildStats(it, mineTitle, from, to, hoursPerDay, holidays) }
-            val other = otherTemplate?.let { buildStats(it, otherTitle, from, to, hoursPerDay, holidays) }
+            val mine = mineTemplate?.let { buildStats(it, mineTitle, from, to, hoursPerDay, workDaysMap) }
+            val other = otherTemplate?.let { buildStats(it, otherTitle, from, to, hoursPerDay, workDaysMap) }
 
             val monthly = buildMonthlyPoints(templates, s.year, hoursPerDay)
 
@@ -103,7 +114,9 @@ class StatsViewModel(app: Application) : AndroidViewModel(app) {
                 mine = mine,
                 other = other,
                 monthly = monthly,
-                loading = false
+                loading = false,
+                workDaysMap = workDaysMap,
+                monthlyNorms = monthlyNorms
             )
         }
     }
@@ -114,7 +127,7 @@ class StatsViewModel(app: Application) : AndroidViewModel(app) {
         from: LocalDate,
         to: LocalDate,
         hoursPerDay: Int,
-        holidays: Map<LocalDate, String>
+        workDaysMap: Map<LocalDate, WorkDayInfo>
     ): CompositionStats {
         val days = mutableSetOf<LocalDate>()
         CycleCalculator.expandCycleToDays(template, from, to).forEach { e ->
@@ -126,8 +139,9 @@ class StatsViewModel(app: Application) : AndroidViewModel(app) {
         }
         val workDays = days.size
         val weekendsOnShift = days.count { it.dayOfWeek.value >= 6 }
-        val holidaysOnShift = days.count { it in holidays.keys }
+        val holidaysOnShift = days.count { workDaysMap[it]?.type == DayType.PUBLIC_HOLIDAY }
         val restDays = (to.toEpochDay() - from.toEpochDay() + 1).toInt() - workDays
+
         return CompositionStats(
             title = title,
             color = template.baseColor,

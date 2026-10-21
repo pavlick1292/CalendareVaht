@@ -3,14 +3,14 @@ package com.example.calendarevaht.ui.calendar
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.calendarevaht.data.HolidayRepository
 import com.example.calendarevaht.data.SettingsPreferences
 import com.example.calendarevaht.data.ShiftPreferences
-import com.example.calendarevaht.domain.Brigade
+import com.example.calendarevaht.data.WorkCalendarRepository
 import com.example.calendarevaht.domain.CycleCalculator
 import com.example.calendarevaht.domain.CycleTemplate
 import com.example.calendarevaht.domain.Person
 import com.example.calendarevaht.domain.ShiftEntry
+import com.example.calendarevaht.domain.WorkDayInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,10 +22,9 @@ import java.time.Year
 data class CalendarUiState(
     val year: Int = Year.now().value,
     val templates: List<CycleTemplate> = emptyList(),
-    val brigades: List<Brigade> = emptyList(),
     val persons: List<Person> = emptyList(),
     val days: Map<LocalDate, List<ShiftEntry>> = emptyMap(),
-    val holidays: Map<LocalDate, String> = emptyMap(),
+    val workDaysMap: Map<LocalDate, WorkDayInfo> = emptyMap(), // Заменили holidays
     val shiftHours: Int = 11
 ) {
     val mine: CycleTemplate? get() = templates.firstOrNull { it.isMine }
@@ -35,7 +34,8 @@ data class CalendarUiState(
 class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     private val shiftPrefs = ShiftPreferences(app)
     private val settingsPrefs = SettingsPreferences(app)
-    private val holidayRepo = HolidayRepository(app)
+    private val workCalendarRepo = WorkCalendarRepository(app)
+
     private val _state = MutableStateFlow(CalendarUiState())
     val state: StateFlow<CalendarUiState> = _state.asStateFlow()
 
@@ -50,7 +50,6 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
     fun reload(year: Int = _state.value.year) {
         viewModelScope.launch {
             val templates = shiftPrefs.templates.first()
-            val brigades = shiftPrefs.brigades.first()
             val persons = shiftPrefs.persons.first()
             val settings = settingsPrefs.settings.first()
 
@@ -72,15 +71,15 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
 
-            val holidays = holidayRepo.load(year)
+            // Берем календарь из репозитория
+            val workDaysMap = workCalendarRepo.getWorkDays()
 
             _state.value = CalendarUiState(
                 year = year,
                 templates = templates,
-                brigades = brigades,
                 persons = persons,
                 days = map.mapValues { it.value.toList() },
-                holidays = holidays,
+                workDaysMap = workDaysMap, // Заменили holidays
                 shiftHours = settings.shiftHours
             )
         }

@@ -14,7 +14,6 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.core.content.FileProvider
-import com.example.calendarevaht.domain.Brigade
 import com.example.calendarevaht.domain.CycleCalculator
 import com.example.calendarevaht.domain.CycleTemplate
 import com.example.calendarevaht.domain.Person
@@ -43,7 +42,6 @@ fun exportCalendar(
     context: Context,
     year: Int,
     templates: List<CycleTemplate>,
-    brigades: List<Brigade>,
     persons: List<Person>,
     holidays: Map<LocalDate, String>,
     shiftHours: Int,
@@ -52,7 +50,7 @@ fun exportCalendar(
 ) {
     CoroutineScope(Dispatchers.IO).launch {
         runCatching {
-            buildPdf(context, year, templates, brigades, persons, holidays, shiftHours, isLandscape, withStats)
+            buildPdf(context, year, templates, persons, holidays, shiftHours, isLandscape, withStats)
         }.onFailure {
             it.printStackTrace()
             CoroutineScope(Dispatchers.Main).launch {
@@ -66,7 +64,6 @@ private fun buildPdf(
     context: Context,
     year: Int,
     templates: List<CycleTemplate>,
-    brigades: List<Brigade>,
     persons: List<Person>,
     holidays: Map<LocalDate, String>,
     shiftHours: Int,
@@ -83,16 +80,15 @@ private fun buildPdf(
     if (withStats) {
         val pageInfo = PdfDocument.PageInfo.Builder(pageW, pageH, pageNum++).create()
         val page = doc.startPage(pageInfo)
-        drawStatsPage(page.canvas, year, templates, brigades, persons, holidays, shiftHours, pageW.toFloat())
+        drawStatsPage(page.canvas, year, templates, persons, holidays, shiftHours, pageW.toFloat())
         doc.finishPage(page)
     }
 
     val pageInfo = PdfDocument.PageInfo.Builder(pageW, pageH, pageNum).create()
     val page = doc.startPage(pageInfo)
-    drawCalendarPage(page.canvas, year, templates, brigades, persons, holidays, isLandscape, pageW.toFloat(), pageH.toFloat())
+    drawCalendarPage(page.canvas, year, templates, persons, holidays, isLandscape, pageW.toFloat(), pageH.toFloat())
     doc.finishPage(page)
-    val gapX = 6f // Было 10f, уменьшили, чтобы календарь был шире
-    val gapY = 8f // Было 10f, уменьшили по вертикали
+
     val fileName = "CalendareVaht_${year}_${if (withStats) "report" else "calendar"}.pdf"
     val uri = savePdf(context, fileName, doc)
     doc.close()
@@ -107,7 +103,6 @@ private fun drawStatsPage(
     canvas: Canvas,
     year: Int,
     templates: List<CycleTemplate>,
-    brigades: List<Brigade>,
     persons: List<Person>,
     holidays: Map<LocalDate, String>,
     shiftHours: Int,
@@ -115,9 +110,8 @@ private fun drawStatsPage(
 ) {
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     var y = MARGIN + 20f
-    val pageH = 842f // Высота А4
+    val pageH = 842f
 
-    // Заголовок
     paint.color = BLACK_TEXT
     paint.textSize = 20f
     paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
@@ -127,8 +121,7 @@ private fun drawStatsPage(
     // 1. Сводка
     paint.textSize = 10f
     templates.forEach { t ->
-        val brigade = brigades.find { it.id == t.brigadeId }
-        val brigadePersons = brigade?.personIds?.mapNotNull { id -> persons.find { it.id == id } } ?: emptyList()
+        val assignedPersons = t.assignedPersonIds.mapNotNull { id -> persons.find { it.id == id } }
 
         var totalDays = 0
         var totalHours = 0
@@ -158,12 +151,12 @@ private fun drawStatsPage(
 
         paint.color = BLACK_TEXT
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText(t.brigadeName, MARGIN + 15f, y, paint)
+        canvas.drawText(t.title.ifBlank { "Без названия" }, MARGIN + 15f, y, paint)
 
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         paint.color = Color.DKGRAY
-        val names = brigadePersons.joinToString(", ") { it.fullName }
-        canvas.drawText(names, MARGIN + 100f, y, paint)
+        val names = assignedPersons.joinToString(", ") { it.fullName }
+        canvas.drawText(names, MARGIN + 120f, y, paint)
 
         y += 14f
         paint.color = BLACK_TEXT
@@ -175,13 +168,12 @@ private fun drawStatsPage(
 
     y += 5f
 
-    // 2. График (сделали пониже, чтобы освободить место таблице)
+    // 2. График
     paint.textSize = 12f
     paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     canvas.drawText("Отработано часов по месяцам", MARGIN, y, paint)
     y += 15f
 
-    // Легенда
     paint.textSize = 9f
     paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
     var legendX = MARGIN
@@ -189,7 +181,7 @@ private fun drawStatsPage(
         paint.color = Color.parseColor(toHex(t.baseColor))
         canvas.drawRect(legendX, y - 7f, legendX + 8, y, paint)
         paint.color = BLACK_TEXT
-        canvas.drawText(t.brigadeName, legendX + 12f, y, paint)
+        canvas.drawText(t.title.ifBlank { "Без названия" }, legendX + 12f, y, paint)
         legendX += 120f
     }
 
@@ -197,7 +189,7 @@ private fun drawStatsPage(
 
     val chartStartX = MARGIN
     val chartWidth = pageW - 2 * MARGIN
-    val chartHeight = 130f // Уменьшили высоту
+    val chartHeight = 130f
     val chartTop = y
     val chartBottom = chartTop + chartHeight
 
@@ -218,7 +210,7 @@ private fun drawStatsPage(
     if (maxVal == 0) maxVal = 1
 
     val colW = chartWidth / 12f
-    val barW = (colW - 16f) / templates.size
+    val barW = (colW - 16f) / templates.size.coerceAtLeast(1)
 
     for (m in 1..12) {
         val ym = YearMonth.of(year, m)
@@ -248,7 +240,7 @@ private fun drawStatsPage(
 
     y = chartBottom + 20f
 
-    // 3. Таблица с нормальными отступами
+    // 3. Таблица
     paint.textSize = 12f
     paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     canvas.drawText("Детализация по месяцам", MARGIN, y, paint)
@@ -257,15 +249,14 @@ private fun drawStatsPage(
     paint.textSize = 9f
     canvas.drawText("Месяц", MARGIN, y, paint)
 
-    // Задаем нормальные координаты для колонок (чтобы текст не налезал)
     val offsetMine = MARGIN + 80f
     val offsetOther = MARGIN + 260f
 
     if (templates.isNotEmpty()) {
-        canvas.drawText(templates.getOrNull(0)?.brigadeName?.take(12) ?: "Мой состав", offsetMine, y, paint)
+        canvas.drawText(templates.getOrNull(0)?.title?.take(12) ?: "Вахта 1", offsetMine, y, paint)
     }
     if (templates.size > 1) {
-        canvas.drawText(templates.getOrNull(1)?.brigadeName?.take(12) ?: "Сменщик", offsetOther, y, paint)
+        canvas.drawText(templates.getOrNull(1)?.title?.take(12) ?: "Вахта 2", offsetOther, y, paint)
     }
 
     y += 12f
@@ -285,7 +276,7 @@ private fun drawStatsPage(
     paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
 
     for (m in 1..12) {
-        if (y > pageH - MARGIN) break // Защита от вылезания
+        if (y > pageH - MARGIN) break
 
         val ym = YearMonth.of(year, m)
         paint.color = BLACK_TEXT
@@ -308,7 +299,6 @@ private fun drawStatsPage(
             val hol = daysInMonth.count { holidays.containsKey(it) }
 
             val xPos = if (idx == 0) offsetMine else offsetOther
-            // Используем фиксированный шаг для цифр, чтобы они стояли ровно
             val dStr = days.toString()
             val hStr = hours.toString()
             val wStr = weekends.toString()
@@ -323,21 +313,10 @@ private fun drawStatsPage(
     }
 }
 
-// Вспомогательный data-класс
-private data class CompositionStatsData(
-    val template: CycleTemplate,
-    val persons: List<Person>,
-    val days: Int,
-    val hours: Int,
-    val weekends: Int,
-    val holidays: Int
-)
-
 private fun drawCalendarPage(
     canvas: Canvas,
     year: Int,
     templates: List<CycleTemplate>,
-    brigades: List<Brigade>,
     persons: List<Person>,
     holidays: Map<LocalDate, String>,
     isLandscape: Boolean,
@@ -356,14 +335,16 @@ private fun drawCalendarPage(
     paint.textSize = 9f
     paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
     templates.forEach { t ->
-        val brigade = brigades.find { it.id == t.brigadeId }
-        val names = brigade?.personIds?.mapNotNull { id -> persons.find { it.id == id }?.fullName }?.joinToString(", ") ?: ""
+        val names = t.assignedPersonIds
+            .mapNotNull { id -> persons.find { it.id == id }?.fullName }
+            .joinToString(", ")
 
         paint.color = Color.parseColor(toHex(t.baseColor))
         canvas.drawRect(MARGIN, startY - 8f, MARGIN + 10, startY, paint)
 
         paint.color = BLACK_TEXT
-        canvas.drawText("${t.brigadeName} ($names)", MARGIN + 15f, startY, paint)
+        val label = if (names.isBlank()) t.title else "${t.title} ($names)"
+        canvas.drawText(label.ifBlank { "Без названия" }, MARGIN + 15f, startY, paint)
         startY += 12f
     }
 
@@ -380,7 +361,6 @@ private fun drawCalendarPage(
     val gapY = 10f
 
     if (isLandscape) {
-        // Альбомная (3 колонки, 4 ряда)
         val colW = (pageW - 2 * MARGIN - 2 * gapX) / 3f
         val rowH = (pageH - startY - MARGIN - 3 * gapY) / 4f
 
@@ -393,7 +373,6 @@ private fun drawCalendarPage(
             }
         }
     } else {
-        // Книжная (2 колонки, 6 рядов)
         val colW = (pageW - 2 * MARGIN - gapX) / 2f
         val rowH = (pageH - startY - MARGIN - 5 * gapY) / 6f
 
@@ -422,18 +401,15 @@ private fun drawMonth(
 ) {
     val ym = YearMonth.of(year, month)
 
-    // Заголовок месяца (по центру)
     paint.color = BLACK_TEXT
     paint.textSize = 11f
     paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     paint.textAlign = Paint.Align.CENTER
     canvas.drawText("${MONTH_NAMES[month - 1]} $year", x0 + w / 2f, y0 + 12f, paint)
 
-    // Ширина ячейки: делим всю ширину месяца на 7 (без лишних отступов)
     val cellW = w / 7f
     val headerY = y0 + 24f
 
-    // Дни недели (Пн-Вс) - крупнее и по центру
     paint.textSize = 9f
     paint.textAlign = Paint.Align.CENTER
     val weekDays = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
@@ -441,7 +417,6 @@ private fun drawMonth(
         canvas.drawText(day, x0 + i * cellW + cellW / 2f, headerY, paint)
     }
 
-    // Сетка
     val gridTop = headerY + 6f
     val availableH = h - (gridTop - y0) - 4f
     val cellH = availableH / 6f
@@ -455,7 +430,6 @@ private fun drawMonth(
         val col = idx % 7
         val row = idx / 7
 
-        // Убрали отступы +4f, чтобы ячейки занимали всю ширину
         val cx = x0 + col * cellW
         val cy = gridTop + row * cellH
 
@@ -464,14 +438,12 @@ private fun drawMonth(
         val isWeekend = date.dayOfWeek.value >= 6
         val dayShifts = days[date].orEmpty()
 
-        // Фон
         if (dayShifts.isEmpty()) {
             paint.color = GRAY_EMPTY
             canvas.drawRect(cx, cy, cx + cellW, cy + cellH, paint)
         } else {
             val distinct = dayShifts.distinctBy { it.color }
             if (distinct.size >= 2) {
-                // Горизонтальное деление
                 paint.color = Color.parseColor(toHex(distinct[0].color))
                 canvas.drawRect(cx, cy, cx + cellW, cy + cellH / 2f, paint)
                 paint.color = Color.parseColor(toHex(distinct[1].color))
@@ -482,22 +454,19 @@ private fun drawMonth(
             }
         }
 
-        // Рамка ячейки
         paint.color = BORDER_COLOR
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 0.5f
         canvas.drawRect(cx, cy, cx + cellW, cy + cellH, paint)
         paint.style = Paint.Style.FILL
 
-        // Красная полоска внизу для праздников/выходных
         if (isHoliday || isWeekend) {
             paint.color = RED_HOLIDAY
             canvas.drawRect(cx, cy + cellH - 2f, cx + cellW, cy + cellH, paint)
         }
 
-        // Цифра дня (крупнее и по центру)
         paint.color = if (dayShifts.isNotEmpty()) Color.WHITE else if (isHoliday || isWeekend) RED_HOLIDAY else BLACK_TEXT
-        paint.textSize = 10f // Увеличили размер цифры
+        paint.textSize = 10f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         paint.textAlign = Paint.Align.CENTER
         val textY = cy + cellH / 2f + 3.5f
@@ -505,11 +474,9 @@ private fun drawMonth(
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
     }
 
-    // Возвращаем выравнивание по левому краю
     paint.textAlign = Paint.Align.LEFT
 }
 
-// Вспомогательные функции (expand, countDays, toHex, savePdf, sharePdf) без изменений
 private fun expand(templates: List<CycleTemplate>, year: Int): Map<LocalDate, List<ShiftEntry>> {
     val from = LocalDate.of(year, 1, 1)
     val to = LocalDate.of(year, 12, 31)

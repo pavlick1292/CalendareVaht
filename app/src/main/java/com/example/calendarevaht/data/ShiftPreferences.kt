@@ -1,9 +1,8 @@
 package com.example.calendarevaht.data
-
+import androidx.datastore.preferences.core.longPreferencesKey
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.example.calendarevaht.domain.Brigade
 import com.example.calendarevaht.domain.CycleRule
 import com.example.calendarevaht.domain.CycleTemplate
 import com.example.calendarevaht.domain.Person
@@ -19,7 +18,10 @@ class ShiftPreferences(private val context: Context) {
 
     private val templatesKey = stringPreferencesKey("templates")
     private val personsKey = stringPreferencesKey("persons")
-    private val brigadesKey = stringPreferencesKey("brigades")
+    private val calendarJsonKey = stringPreferencesKey("work_calendar_json")
+    private val calendarUpdateKey = longPreferencesKey("work_calendar_update_time")
+    // brigadesKey больше не используется, оставлен для очистки старого ключа
+    private val brigadesKeyOld = stringPreferencesKey("brigades")
 
     // === ВАХТЫ ===
     val templates: Flow<List<CycleTemplate>> = context.dataStore.data.map { prefs ->
@@ -31,12 +33,6 @@ class ShiftPreferences(private val context: Context) {
     val persons: Flow<List<Person>> = context.dataStore.data.map { prefs ->
         val json = prefs[personsKey] ?: return@map emptyList()
         parsePersons(json)
-    }
-
-    // === БРИГАДЫ ===
-    val brigades: Flow<List<Brigade>> = context.dataStore.data.map { prefs ->
-        val json = prefs[brigadesKey] ?: return@map emptyList()
-        parseBrigades(json)
     }
 
     // СОХРАНЕНИЕ
@@ -52,28 +48,34 @@ class ShiftPreferences(private val context: Context) {
         }
     }
 
-    suspend fun saveBrigades(list: List<Brigade>) {
-        context.dataStore.edit { prefs ->
-            prefs[brigadesKey] = serializeBrigades(list)
-        }
-    }
-
     // === МИГРАЦИЯ ===
     suspend fun migrateIfNeeded() {
         val currentTemplates = templates.first()
-        if (currentTemplates.any { it.brigadeId == 0L }) {
-            val defaultPerson = Person(id = 1L, fullName = "Сотрудник 1", position = "", isActive = true)
-            val defaultBrigade = Brigade(id = 1L, name = "Мой состав", personIds = listOf(1L))
+        val currentPersons = persons.first()
 
-            val migratedTemplates = currentTemplates.map { t ->
-                if (t.brigadeId == 0L) {
-                    t.copy(brigadeId = 1L, brigadeName = "Мой состав")
-                } else t
+        // Если у шаблонов есть старые поля brigadeId/brigadeName (признак старой версии),
+        // переносим brigadeName в title, ставим assignedPersonIds пустым.
+        val needsMigration = currentTemplates.any { t ->
+            // В новой версии title не может быть пустым, если вахта существует
+            // (старая версия хранила "Мой состав" по умолчанию)
+            t.title.isBlank() || t.assignedPersonIds.isEmpty()
+        } && currentTemplates.isNotEmpty()
+
+        if (needsMigration) {
+            val migrated = currentTemplates.map { t ->
+                t.copy(
+                    title = t.title.ifBlank { "Мой состав" },
+                    assignedPersonIds = t.assignedPersonIds
+                )
             }
+            saveTemplates(migrated)
+        }
 
-            savePersons(listOf(defaultPerson))
-            saveBrigades(listOf(defaultBrigade))
-            saveTemplates(migratedTemplates)
+        // Удаляем старый ключ бригад, если он есть
+        context.dataStore.edit { prefs ->
+            if (prefs.contains(brigadesKeyOld)) {
+                prefs.remove(brigadesKeyOld)
+            }
         }
     }
 
@@ -86,6 +88,7 @@ class ShiftPreferences(private val context: Context) {
                 val obj = array.getJSONObject(i)
                 CycleTemplate(
                     id = obj.getLong("id"),
+                    title = obj.optString("title", obj.optString("brigadeName", "Мой состав")),
                     initialRule = CycleRule(
                         workDays = obj.getJSONObject("initialRule").getInt("workDays"),
                         restDays = obj.getJSONObject("initialRule").getInt("restDays")
@@ -98,8 +101,7 @@ class ShiftPreferences(private val context: Context) {
                     countBackward = obj.optBoolean("countBackward", false),
                     backwardLimitMonths = obj.optInt("backwardLimitMonths", 0),
                     isMine = obj.getBoolean("isMine"),
-                    brigadeId = obj.optLong("brigadeId", 0L),
-                    brigadeName = obj.optString("brigadeName", "Мой состав")
+                    assignedPersonIds = parseIds(obj.optJSONArray("assignedPersonIds"))
                 )
             }
         } catch (e: Exception) { emptyList() }
@@ -110,6 +112,7 @@ class ShiftPreferences(private val context: Context) {
         list.forEach { t ->
             val obj = JSONObject()
             obj.put("id", t.id)
+            obj.put("title", t.title)
             obj.put("initialRule", JSONObject().apply {
                 put("workDays", t.initialRule.workDays)
                 put("restDays", t.initialRule.restDays)
@@ -122,8 +125,7 @@ class ShiftPreferences(private val context: Context) {
             obj.put("countBackward", t.countBackward)
             obj.put("backwardLimitMonths", t.backwardLimitMonths)
             obj.put("isMine", t.isMine)
-            obj.put("brigadeId", t.brigadeId)
-            obj.put("brigadeName", t.brigadeName)
+            obj.put("assignedPersonIds", JSONArray(t.assignedPersonIds))
             array.put(obj)
         }
         return array.toString()
@@ -138,7 +140,7 @@ class ShiftPreferences(private val context: Context) {
                     id = obj.getLong("id"),
                     fullName = obj.getString("fullName"),
                     position = obj.optString("position", ""),
-                    isActive = obj.optBoolean("isActive", true)
+                    isMe = obj.optBoolean("isMe", false)
                 )
             }
         } catch (e: Exception) { emptyList() }
@@ -151,38 +153,15 @@ class ShiftPreferences(private val context: Context) {
                 put("id", p.id)
                 put("fullName", p.fullName)
                 put("position", p.position)
-                put("isActive", p.isActive)
+                put("isMe", p.isMe)
             })
         }
         return array.toString()
     }
 
-    private fun parseBrigades(json: String): List<Brigade> {
-        return try {
-            val array = JSONArray(json)
-            (0 until array.length()).map { i ->
-                val obj = array.getJSONObject(i)
-                val idsArray = obj.getJSONArray("personIds")
-                val ids = (0 until idsArray.length()).map { idsArray.getLong(it) }
-                Brigade(
-                    id = obj.getLong("id"),
-                    name = obj.getString("name"),
-                    personIds = ids
-                )
-            }
-        } catch (e: Exception) { emptyList() }
-    }
-
-    private fun serializeBrigades(list: List<Brigade>): String {
-        val array = JSONArray()
-        list.forEach { b ->
-            array.put(JSONObject().apply {
-                put("id", b.id)
-                put("name", b.name)
-                put("personIds", JSONArray(b.personIds))
-            })
-        }
-        return array.toString()
+    private fun parseIds(array: JSONArray?): List<Long> {
+        if (array == null) return emptyList()
+        return (0 until array.length()).map { array.getLong(it) }
     }
 
     private fun parseOverrides(array: JSONArray?): List<ShiftOverride> {
@@ -212,4 +191,19 @@ class ShiftPreferences(private val context: Context) {
         }
         return array
     }
-}
+
+    // === ПРОИЗВОДСТВЕННЫЙ КАЛЕНДАРЬ ===
+    val workCalendarJson: Flow<String?> = context.dataStore.data.map { prefs ->
+        prefs[calendarJsonKey]
+    }
+
+    val lastCalendarUpdate: Flow<Long> = context.dataStore.data.map { prefs ->
+        prefs[calendarUpdateKey] ?: 0L
+    }
+
+    suspend fun saveWorkCalendar(json: String) {
+        context.dataStore.edit { prefs ->
+            prefs[calendarJsonKey] = json
+            prefs[calendarUpdateKey] = System.currentTimeMillis()
+        }
+    }}

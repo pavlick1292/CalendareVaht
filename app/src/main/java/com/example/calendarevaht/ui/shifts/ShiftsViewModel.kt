@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.calendarevaht.data.ShiftPreferences
-import com.example.calendarevaht.domain.Brigade
 import com.example.calendarevaht.domain.CycleRule
 import com.example.calendarevaht.domain.CycleTemplate
 import com.example.calendarevaht.domain.Person
@@ -17,16 +16,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-
+import com.example.calendarevaht.data.WorkCalendarRepository
 class ShiftsViewModel(app: Application) : AndroidViewModel(app) {
     private val prefs = ShiftPreferences(app)
     private val _localTemplates = MutableStateFlow<List<CycleTemplate>?>(null)
 
-    // Состояние горизонта
     private val _forecastMonths = MutableStateFlow(6)
     val forecastMonths: StateFlow<Int> = _forecastMonths
 
-    // Данные о вахтах
     val templates = combine(prefs.templates, _localTemplates) { dataStoreList, localList ->
         localList ?: dataStoreList
     }.stateIn(
@@ -35,17 +32,15 @@ class ShiftsViewModel(app: Application) : AndroidViewModel(app) {
         initialValue = emptyList()
     )
 
-    // Данные о бригадах и людях (для UI)
-    val brigades = prefs.brigades.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val persons = prefs.persons.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         viewModelScope.launch {
             prefs.migrateIfNeeded()
-            val current = prefs.templates.first()
-            if (current.isEmpty()) {
-                seedTestData()
-            }
+
+            // Загружаем производственный календарь в фоне
+            val calendarRepo = WorkCalendarRepository(getApplication())
+            calendarRepo.ensureCalendarLoaded()
         }
     }
 
@@ -53,119 +48,45 @@ class ShiftsViewModel(app: Application) : AndroidViewModel(app) {
         _forecastMonths.value = months.coerceIn(3, 36)
     }
 
-    private fun seedTestData() {
-        viewModelScope.launch {
-            val myShift = CycleTemplate(
-                id = 1L,
-                initialRule = CycleRule(workDays = 23, restDays = 19),
-                startDate = LocalDate.of(2026, 10, 14),
-                endDate = null,
-                isOneTime = false,
-                baseColor = 0xFF4CAF50,
-                overrides = emptyList(),
-                countBackward = false,
-                backwardLimitMonths = 0,
-                isMine = true,
-                brigadeId = 1L,
-                brigadeName = "Мой состав"
-            )
+    // === ВАХТЫ ===
 
-            val otherShift = CycleTemplate(
-                id = 2L,
-                initialRule = CycleRule(workDays = 23, restDays = 19),
-                startDate = LocalDate.of(2026, 9, 23),
-                endDate = null,
-                isOneTime = false,
-                baseColor = 0xFFFF9800,
-                overrides = emptyList(),
-                countBackward = false,
-                backwardLimitMonths = 0,
-                isMine = false,
-                brigadeId = 2L,
-                brigadeName = "Сменщик"
-            )
-
-            // Создаем тестовые данные для людей и бригад
-            val personsList = listOf(
-                Person(id = 1L, fullName = "Иванов Иван", position = "Машинист"),
-                Person(id = 2L, fullName = "Петров Петр", position = "Помощник"),
-                Person(id = 3L, fullName = "Сидоров Сидор", position = "Водитель")
-            )
-            val brigadesList = listOf(
-                Brigade(id = 1L, name = "Мой состав", personIds = listOf(1L, 2L)),
-                Brigade(id = 2L, name = "Сменщик", personIds = listOf(3L))
-            )
-
-            savePersonsAndBrigades(personsList, brigadesList)
-            saveAndSync(listOf(myShift, otherShift))
-        }
-    }
-
-    // Сохранение списка вахт
-    private suspend fun saveAndSync(list: List<CycleTemplate>) {
+    private suspend fun saveTemplates(list: List<CycleTemplate>) {
         _localTemplates.value = list
         prefs.saveTemplates(list)
-    }
-
-    // Сохранение людей и бригад
-    private suspend fun savePersonsAndBrigades(personsList: List<Person>, brigadesList: List<Brigade>) {
-        prefs.savePersons(personsList)
-        prefs.saveBrigades(brigadesList)
-    }
-
-    // Методы для добавления/обновления людей и бригад (пока используются для тестов)
-    fun addPerson(person: Person) {
-        viewModelScope.launch {
-            val current = persons.value
-            prefs.savePersons(current + person)
-        }
-    }
-
-    fun addBrigade(brigade: Brigade) {
-        viewModelScope.launch {
-            val current = brigades.value
-            prefs.saveBrigades(current + brigade)
-        }
     }
 
     fun add(template: CycleTemplate) {
         viewModelScope.launch {
             val current = templates.value
             val newItem = template.copy(id = nextId(current))
-            val updated = if (newItem.isMine) {
-                current.map { it.copy(isMine = false) } + newItem
+            // При добавлении новой вахты проверяем, не нужно ли сделать её "моей"
+            val updated = if (newItem.assignedPersonIds.any { id -> persons.value.find { it.id == id }?.isMe == true }) {
+                // Если в новой вахте есть "я", делаем её моей
+                current.map { it.copy(isMine = false) } + newItem.copy(isMine = true)
             } else {
                 current + newItem
             }
-            saveAndSync(updated)
+            saveTemplates(updated)
         }
     }
 
     fun update(template: CycleTemplate) {
         viewModelScope.launch {
             val updated = templates.value.map { t ->
-                when {
-                    t.id == template.id -> template
-                    template.isMine -> t.copy(isMine = false)
-                    else -> t
-                }
+                if (t.id == template.id) template else t
             }
-            val finalList = if (updated.count { it.isMine } > 1) {
-                updated.map { t -> if (t.id != template.id && t.isMine) t.copy(isMine = false) else t }
-            } else updated
-            saveAndSync(finalList)
+            // Пересчитываем isMine для всех вахт
+            val finalList = updated.map { t ->
+                val hasMe = t.assignedPersonIds.any { id -> persons.value.find { it.id == id }?.isMe == true }
+                t.copy(isMine = hasMe)
+            }
+            saveTemplates(finalList)
         }
     }
 
     fun remove(id: Long) {
         viewModelScope.launch {
-            saveAndSync(templates.value.filterNot { it.id == id })
-        }
-    }
-
-    fun setMine(id: Long) {
-        viewModelScope.launch {
-            saveAndSync(templates.value.map { it.copy(isMine = it.id == id) })
+            saveTemplates(templates.value.filterNot { it.id == id })
         }
     }
 
@@ -175,66 +96,116 @@ class ShiftsViewModel(app: Application) : AndroidViewModel(app) {
                 if (t.id != templateId) return@map t
                 t.copy(overrides = t.overrides.filterNot { it.originalStart == originalStart })
             }
-            saveAndSync(updated)
+            saveTemplates(updated)
         }
     }
 
     private fun nextId(list: List<CycleTemplate>): Long =
         (list.maxOfOrNull { it.id } ?: 0L) + 1L
-    // === ДОБАВЛЕНИЕ И ОБНОВЛЕНИЕ БРИГАД / ЛЮДЕЙ ===
 
-    fun addPersonToBrigade(brigadeId: Long, fullName: String, position: String) {
+    // === ЛЮДИ ===
+
+    fun addPerson(fullName: String, position: String, isMe: Boolean) {
         viewModelScope.launch {
             val currentPersons = persons.value
-            val newId = (currentPersons.maxOfOrNull { it.id } ?: 0L) + 1L
-            val newPerson = Person(id = newId, fullName = fullName, position = position)
+            var updatedPersons = currentPersons
 
-            // Сохраняем человека
-            prefs.savePersons(currentPersons + newPerson)
-
-            // Добавляем его ID в бригаду
-            val currentBrigades = brigades.value
-            val updatedBrigades = currentBrigades.map { b ->
-                if (b.id == brigadeId) b.copy(personIds = b.personIds + newId) else b
+            // Если ставим isMe = true, снимаем у остальных
+            if (isMe) {
+                updatedPersons = updatedPersons.map { it.copy(isMe = false) }
             }
-            prefs.saveBrigades(updatedBrigades)
+
+            val newId = (updatedPersons.maxOfOrNull { it.id } ?: 0L) + 1L
+            val newPerson = Person(id = newId, fullName = fullName, position = position, isMe = isMe)
+            prefs.savePersons(updatedPersons + newPerson)
+
+            // Если добавили "себя", пересчитываем isMine у вахт
+            if (isMe) {
+                recalculateMineStatus()
+            }
         }
     }
-    fun updatePerson(person: Person) {
+
+    fun updatePerson(person: Person, selectedShiftIds: List<Long>) {
         viewModelScope.launch {
-            val currentPersons = persons.value.map { if (it.id == person.id) person else it }
-            prefs.savePersons(currentPersons)
-        }
-    }
-    fun addBrigade(name: String) {
-        viewModelScope.launch {
-            val current = brigades.value
-            val newId = (current.maxOfOrNull { it.id } ?: 0L) + 1L
-            val newBrigade = Brigade(id = newId, name = name, personIds = emptyList())
-            prefs.saveBrigades(current + newBrigade)
-            fun updatePerson(person: Person) {
-                viewModelScope.launch {
-                    val currentPersons = persons.value.map { if (it.id == person.id) person else it }
-                    prefs.savePersons(currentPersons)
+            var currentPersons = persons.value
+
+            // Если человек становится "мной", снимаем флаг у остальных
+            if (person.isMe) {
+                currentPersons = currentPersons.map { if (it.id != person.id) it.copy(isMe = false) else it }
+            }
+
+            val updatedPersons = currentPersons.map { if (it.id == person.id) person else it }
+            prefs.savePersons(updatedPersons)
+
+            // Обновляем привязку к вахтам
+            val currentTemplates = templates.value
+            val updatedTemplates = currentTemplates.map { t ->
+                val wasAssigned = person.id in t.assignedPersonIds
+                val shouldBeAssigned = person.id in selectedShiftIds
+
+                if (shouldBeAssigned && !wasAssigned) {
+                    t.copy(assignedPersonIds = t.assignedPersonIds + person.id)
+                } else if (!shouldBeAssigned && wasAssigned) {
+                    t.copy(assignedPersonIds = t.assignedPersonIds - person.id)
+                } else {
+                    t
                 }
             }
+            saveTemplates(updatedTemplates)
 
-            fun movePersonToBrigade(personId: Long, newBrigadeId: Long?) {
-                viewModelScope.launch {
-                    val currentBrigades = brigades.value.map { b ->
-                        // Удаляем человека из всех бригад
-                        val updatedIds = b.personIds.filterNot { it == personId }
-                        // Если это та бригада, куда мы переводим — добавляем его
-                        if (b.id == newBrigadeId) {
-                            b.copy(personIds = updatedIds + personId)
-                        } else {
-                            b.copy(personIds = updatedIds)
-                        }
+            // Пересчитываем "мои" вахты
+            recalculateMineStatus()
+        }
+    }
+
+    fun deletePerson(personId: Long) {
+        viewModelScope.launch {
+            // Удаляем из списка людей
+            val updatedPersons = persons.value.filterNot { it.id == personId }
+            prefs.savePersons(updatedPersons)
+
+            // Удаляем из всех вахт
+            val updatedTemplates = templates.value.map { t ->
+                t.copy(assignedPersonIds = t.assignedPersonIds - personId)
+            }
+            saveTemplates(updatedTemplates)
+
+            recalculateMineStatus()
+        }
+    }
+
+    fun togglePersonToShift(shiftId: Long, personId: Long) {
+        viewModelScope.launch {
+            val updatedTemplates = templates.value.map { t ->
+                if (t.id == shiftId) {
+                    val newAssigned = if (personId in t.assignedPersonIds) {
+                        t.assignedPersonIds - personId
+                    } else {
+                        t.assignedPersonIds + personId
                     }
-                    prefs.saveBrigades(currentBrigades)
+                    t.copy(assignedPersonIds = newAssigned)
+                } else {
+                    t
                 }
-            } }
+            }
+            saveTemplates(updatedTemplates)
+            recalculateMineStatus()
+        }
     }
 
-    fun movePersonToBrigade(id: Long, newBrigadeId: Long?) {}
+    /**
+     * Пересчитывает флаг isMine у вахт на основе того, есть ли в них человек с isMe = true.
+     * Также обновляет isMine, если человек "я" был удален.
+     */
+    private suspend fun recalculateMineStatus() {
+        val currentPersons = persons.value
+        val mePerson = currentPersons.find { it.isMe }
+
+        val updatedTemplates = templates.value.map { t ->
+            val hasMe = mePerson != null && mePerson.id in t.assignedPersonIds
+            t.copy(isMine = hasMe)
+        }
+        saveTemplates(updatedTemplates)
+    }
 }

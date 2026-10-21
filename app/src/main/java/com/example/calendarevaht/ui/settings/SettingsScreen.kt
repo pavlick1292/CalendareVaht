@@ -42,9 +42,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    currentTheme: AppTheme,
+    onThemeChange: (AppTheme) -> Unit,
     vm: SettingsViewModel = viewModel()
 ) {
-    val theme by vm.theme.collectAsState()
     val settings by vm.settings.collectAsState()
     val message by vm.message.collectAsState()
     val options by vm.options.collectAsState()
@@ -91,13 +92,13 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { vm.saveTheme(t) }
+                            .clickable { onThemeChange(t) } // <-- Вызываем проброшенную функцию
                             .padding(vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(t.title, fontSize = 14.sp)
-                        if (t == theme) Icon(Icons.Default.Check, contentDescription = null)
+                        if (t == currentTheme) Icon(Icons.Default.Check, contentDescription = null)
                     }
                 }
             }

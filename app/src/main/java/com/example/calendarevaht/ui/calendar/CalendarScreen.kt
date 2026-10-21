@@ -1,6 +1,5 @@
 package com.example.calendarevaht.ui.calendar
 
-import com.example.calendarevaht.ui.groupHolidaysForDisplay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.calendarevaht.export.exportCalendar
+import com.example.calendarevaht.domain.DayType
 import java.time.YearMonth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -112,7 +112,7 @@ fun CalendarScreen(
                         MiniMonth(
                             yearMonth = YearMonth.of(state.year, monthIndex),
                             days = state.days,
-                            holidays = state.holidays,
+                            workDaysMap = state.workDaysMap, // Передаем новую карту
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(2.dp)
@@ -121,7 +121,9 @@ fun CalendarScreen(
                 }
             }
 
-            if (state.holidays.isNotEmpty()) {
+            // Секция с праздниками (из нового workDaysMap)
+            val holidays = state.workDaysMap.filter { it.value.type == DayType.PUBLIC_HOLIDAY }
+            if (holidays.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -136,8 +138,13 @@ fun CalendarScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(Modifier.height(6.dp))
-                        val grouped = groupHolidaysForDisplay(state.holidays)
-                        grouped.forEach { text ->
+
+                        // Группируем по названию, чтобы не выводить каждый день отдельно
+                        val groupedHolidays = holidays.values
+                            .filter { it.holidayName != null }
+                            .groupBy { it.holidayName!! }
+
+                        groupedHolidays.forEach { (name, days) ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     Modifier
@@ -146,7 +153,7 @@ fun CalendarScreen(
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = text,
+                                    text = "$name (${days.size} дн.)",
                                     fontSize = 12.sp
                                 )
                             }
@@ -171,13 +178,18 @@ fun CalendarScreen(
             onDismiss = { showExportDialog = false },
             onExport = { isLandscape, withStats ->
                 showExportDialog = false
+
+                // Конвертируем workDaysMap в Map<LocalDate, String?> для PDF
+                val holidayNames = state.workDaysMap
+                    .filter { it.value.type == DayType.PUBLIC_HOLIDAY }
+                    .mapValues { it.value.holidayName ?: "Праздник" }
+
                 exportCalendar(
                     context = context,
                     year = state.year,
                     templates = state.templates,
-                    brigades = state.brigades,
                     persons = state.persons,
-                    holidays = state.holidays,
+                    holidays = holidayNames, // Передаем названия праздников
                     shiftHours = state.shiftHours,
                     isLandscape = isLandscape,
                     withStats = withStats
