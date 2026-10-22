@@ -24,7 +24,7 @@ data class CalendarUiState(
     val templates: List<CycleTemplate> = emptyList(),
     val persons: List<Person> = emptyList(),
     val days: Map<LocalDate, List<ShiftEntry>> = emptyMap(),
-    val workDaysMap: Map<LocalDate, WorkDayInfo> = emptyMap(), // Заменили holidays
+    val workDaysMap: Map<LocalDate, WorkDayInfo> = emptyMap(),
     val shiftHours: Int = 11
 ) {
     val mine: CycleTemplate? get() = templates.firstOrNull { it.isMine }
@@ -71,15 +71,15 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
 
-            // Берем календарь из репозитория
-            val workDaysMap = workCalendarRepo.getWorkDays()
+            // Передаем год! Теперь репозиторий скачает его, если надо.
+            val workDaysMap = workCalendarRepo.getWorkDays(year)
 
             _state.value = CalendarUiState(
                 year = year,
                 templates = templates,
                 persons = persons,
                 days = map.mapValues { it.value.toList() },
-                workDaysMap = workDaysMap, // Заменили holidays
+                workDaysMap = workDaysMap,
                 shiftHours = settings.shiftHours
             )
         }

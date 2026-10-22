@@ -38,11 +38,27 @@ class WorkCalendarRepository(context: Context) {
     }
 
     /**
-     * Возвращает словарь: дата -> информация о дне.
-     * Парсит JSON, сохраненный в DataStore.
+     * Парсит JSON из кэша. Если нужен другой год, пробует скачать его.
      */
-    suspend fun getWorkDays(): Map<LocalDate, WorkDayInfo> {
-        val json = prefs.workCalendarJson.first() ?: return emptyMap()
+    suspend fun getWorkDays(year: Int = LocalDate.now().year): Map<LocalDate, WorkDayInfo> {
+        // Если это текущий год, берем из кэша
+        if (year == LocalDate.now().year) {
+            val json = prefs.workCalendarJson.first() ?: return emptyMap()
+            return parseJson(json)
+        }
+
+        // Если другой год — качаем с API (с кэшированием в память не заморачиваемся)
+        return try {
+            val response = CalendarApi.service.getYear(year)
+            val jsonString = gson.toJson(response)
+            parseJson(jsonString)
+        } catch (e: Exception) {
+            Log.e("CalendarRepo", "Ошибка скачивания за $year", e)
+            emptyMap()
+        }
+    }
+
+    private fun parseJson(json: String): Map<LocalDate, WorkDayInfo> {
         return try {
             val response = gson.fromJson(json, WorkCalendarResponse::class.java)
             val map = mutableMapOf<LocalDate, WorkDayInfo>()
@@ -73,15 +89,12 @@ class WorkCalendarRepository(context: Context) {
         }
     }
 
-    /**
-     * Считает нормы рабочего времени по месяцам для указанного года.
-     */
-    suspend fun getMonthlyNorms(): List<MonthNorm> {
-        val daysMap = getWorkDays()
+    suspend fun getMonthlyNorms(year: Int = LocalDate.now().year): List<MonthNorm> {
+        val daysMap = getWorkDays(year)
         if (daysMap.isEmpty()) return emptyList()
 
         return (1..12).map { m ->
-            val ym = YearMonth.of(LocalDate.now().year, m)
+            val ym = YearMonth.of(year, m)
             val daysInMonth = daysMap.filterKeys { YearMonth.from(it) == ym }.values
 
             val calendarDays = ym.lengthOfMonth()

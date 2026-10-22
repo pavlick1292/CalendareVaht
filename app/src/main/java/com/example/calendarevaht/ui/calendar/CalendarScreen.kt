@@ -98,11 +98,6 @@ fun CalendarScreen(
                 }
             }
 
-            Legend(
-                mineColor = state.mine?.baseColor,
-                otherColor = state.other?.baseColor
-            )
-
             Spacer(Modifier.height(8.dp))
 
             for (row in 0 until 4) {
@@ -140,6 +135,7 @@ fun CalendarScreen(
                         Spacer(Modifier.height(6.dp))
 
                         // Группируем по названию, чтобы не выводить каждый день отдельно
+                        // Группируем по названию и собираем даты
                         val groupedHolidays = holidays.values
                             .filter { it.holidayName != null }
                             .groupBy { it.holidayName!! }
@@ -152,12 +148,16 @@ fun CalendarScreen(
                                         .background(Color(0xFFE53935), CircleShape)
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = "$name (${days.size} дн.)",
-                                    fontSize = 12.sp
-                                )
+                                Column {
+                                    Text(text = name, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    // Выводим даты через запятую (например: 01.01, 02.01, 03.01)
+                                    val datesStr = days.sortedBy { it.date }.joinToString(", ") {
+                                        it.date.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM"))
+                                    }
+                                    Text(text = datesStr, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
-                            Spacer(Modifier.height(3.dp))
+                            Spacer(Modifier.height(6.dp))
                         }
                     }
                 }
@@ -239,28 +239,4 @@ private fun ExportOptionsDialog(
             TextButton(onClick = onDismiss) { Text("Отмена") }
         }
     )
-}
-
-@Composable
-private fun Legend(mineColor: Long?, otherColor: Long?) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (mineColor != null) LegendItem(Color(mineColor), "мой состав")
-        if (otherColor != null) LegendItem(Color(otherColor), "сменщик")
-        LegendItem(Color(0xFFE53935), "выходной / праздник")
-    }
-}
-
-@Composable
-private fun LegendItem(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(10.dp).background(color, CircleShape))
-        Spacer(Modifier.width(4.dp))
-        Text(label, fontSize = 11.sp)
-    }
 }

@@ -412,7 +412,7 @@ private fun computeStatus(
                 val day = ChronoUnit.DAYS.between(mine.startDate, today).toInt() + 1
                 TodayStatus(
                     title = "Идёт вахта: $day/$total",
-                    subtitle = "Осталось ${total - day} дн.",
+                    subtitle = "Осталось ${total - day + 1} дн.",
                     progress = day.toFloat() / total
                 )
             }

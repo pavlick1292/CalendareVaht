@@ -333,7 +333,7 @@ private fun HoursChart(
 
                 // Цвет обводки зависит от темы
                 val outlineColor = if (isDarkTheme) android.graphics.Color.WHITE else android.graphics.Color.BLACK
-                val textColor = android.graphics.Color.parseColor("#E53935") // Красный
+                val textColor = "#E53935".toColorInt() // Красный
 
                 val textPaint = android.graphics.Paint().apply {
                     textSize = 22f
@@ -367,7 +367,7 @@ private fun HoursChart(
                 val diff = point.mineHours - norm.normHours40h
                 if (diff != 0) {
                     val diffText = if (diff > 0) "+$diff" else "$diff"
-                    val diffColor = if (diff > 0) android.graphics.Color.parseColor("#4CAF50") else android.graphics.Color.parseColor("#F44336")
+                    val diffColor = if (diff > 0) "#4CAF50".toColorInt() else "#F44336".toColorInt()
 
                     drawContext.canvas.nativeCanvas.drawText(
                         diffText,
